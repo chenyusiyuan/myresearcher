@@ -18,6 +18,10 @@ class TodoItem:
     status: str = field(default="pending")
     summary: Optional[str] = field(default=None)
     sources_summary: Optional[str] = field(default=None)
+    priority: Optional[int] = field(default=None)
+    depends_on: list[int] = field(default_factory=list)
+    search_budget: Optional[int] = field(default=None)
+    search_type: Optional[str] = field(default=None)
     notices: list[str] = field(default_factory=list)
     note_id: Optional[str] = field(default=None)
     note_path: Optional[str] = field(default=None)
@@ -48,4 +52,3 @@ class SummaryStateOutput:
     running_summary: str = field(default=None)  # Backward-compatible文本
     report_markdown: Optional[str] = field(default=None)
     todo_items: List[TodoItem] = field(default_factory=list)
-

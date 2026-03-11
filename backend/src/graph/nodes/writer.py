@@ -15,7 +15,7 @@ _MAX_CONTEXT_PER_TASK = 8000
 _MAX_EVIDENCE_SNIPPET_CHARS = 1000
 _MAX_PREVIOUS_REPORT_HEADINGS = 20
 _MAX_PREVIOUS_REPORT_FALLBACK_CHARS = 2000
-_SECTION_HEADING_RE = re.compile(r"^(##|###)\s+(.+?)\s*$", re.MULTILINE)
+_SECTION_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 
 
 def _sanitize_writer_prompt() -> str:
@@ -184,6 +184,21 @@ def _build_writer_user_prompt(state: dict[str, Any]) -> str:
     return "\n\n".join(part for part in prompt_parts if part).strip()
 
 
+def _build_patch_supporting_context(state: dict[str, Any]) -> str:
+    research_topic = str(state.get("research_topic") or "").strip()
+    task_block = _build_task_context_block(state)
+    evidence_block = _build_evidence_block(state.get("evidence_store", []))
+    return "\n\n".join(
+        [
+            f"研究主题：{research_topic}",
+            "## 最新任务研究结果",
+            task_block or "暂无最新任务结果",
+            "## 最新证据库",
+            evidence_block or "暂无最新证据",
+        ]
+    ).strip()
+
+
 def _build_references_section(evidence_store: list[dict[str, Any]]) -> str:
     seen: set[str] = set()
     references: list[str] = []
@@ -323,10 +338,12 @@ async def _patch_report(
 
         start, end, original_heading = section_span
         prompt = (
+            f"{_build_patch_supporting_context(state)}\n\n"
             f"以下是完整报告：\n{patched_report}\n\n"
             f"请修改章节「{section}」：\n"
             f"问题：{issue or '该章节仍需优化结构、论证或表达'}\n"
             f"修改要求：{instruction}\n\n"
+            "请优先吸收上面的最新补研结果和证据，不要丢弃已有有效内容。\n"
             "只输出修改后的该章节内容（包含章节标题），不要输出其他章节，不要解释。"
         )
         response = await with_llm_retry(

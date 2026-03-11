@@ -5,7 +5,7 @@ from typing import Any
 from typing_extensions import NotRequired, TypedDict
 
 from config import Configuration, SearchAPI
-from graph.builder import route_after_review, route_research_more, route_tasks
+from graph.builder import route_after_review, route_after_task_batch, route_research_more, route_tasks
 from graph.nodes.planner import planner_node
 from graph.nodes.research_more import research_more_node
 from graph.nodes.reviewer import reviewer_node
@@ -98,7 +98,11 @@ def build_studio_graph():
     graph.set_entry_point("prepare")
     graph.add_edge("prepare", "planner")
     graph.add_conditional_edges("planner", route_tasks, ["task_node"])
-    graph.add_edge("task_node", "writer")
+    graph.add_conditional_edges(
+        "task_node",
+        route_after_task_batch,
+        {"writer": "writer"},
+    )
     graph.add_edge("writer", "reviewer")
     graph.add_conditional_edges(
         "reviewer",
@@ -111,4 +115,3 @@ def build_studio_graph():
     )
     graph.add_conditional_edges("research_more", route_research_more, ["task_node"])
     return graph.compile(name="deep_researcher")
-

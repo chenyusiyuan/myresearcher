@@ -52,6 +52,14 @@ def _convert_todo_items(todo_items: list[dict[str, Any]] | None) -> list[TodoIte
                 status=str(item.get("status") or "pending").strip() or "pending",
                 summary=item.get("summary"),
                 sources_summary=item.get("sources_summary"),
+                priority=_safe_int(item.get("priority"), 0) or None,
+                depends_on=[
+                    _safe_int(dep)
+                    for dep in item.get("depends_on", [])
+                    if _safe_int(dep) > 0
+                ] if isinstance(item.get("depends_on"), list) else [],
+                search_budget=_safe_int(item.get("search_budget"), 0) or None,
+                search_type=str(item.get("search_type") or "").strip() or None,
             )
         )
     return converted

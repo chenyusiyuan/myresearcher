@@ -64,6 +64,10 @@ class TodoItem(TypedDict):
     status: str
     summary: Optional[str]
     sources_summary: Optional[str]
+    priority: NotRequired[int]
+    depends_on: NotRequired[list[int]]
+    search_budget: NotRequired[int]
+    search_type: NotRequired[str]
 
 
 class ResearchState(TypedDict):

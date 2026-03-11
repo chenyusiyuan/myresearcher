@@ -12,6 +12,20 @@ def safe_int(value: Any, default: int = 0) -> int:
         return default
 
 
+def _normalize_int_list(value: Any) -> list[int]:
+    if not isinstance(value, list):
+        return []
+    normalized: list[int] = []
+    seen: set[int] = set()
+    for item in value:
+        parsed = safe_int(item, 0)
+        if parsed <= 0 or parsed in seen:
+            continue
+        seen.add(parsed)
+        normalized.append(parsed)
+    return normalized
+
+
 def serialize_todo_items(todo_items: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
     serialized: list[dict[str, Any]] = []
     for item in todo_items or []:
@@ -26,6 +40,10 @@ def serialize_todo_items(todo_items: list[dict[str, Any]] | None) -> list[dict[s
                 "status": str(item.get("status") or "").strip() or "pending",
                 "summary": item.get("summary"),
                 "sources_summary": item.get("sources_summary"),
+                "priority": safe_int(item.get("priority"), 0) or None,
+                "depends_on": _normalize_int_list(item.get("depends_on")),
+                "search_budget": safe_int(item.get("search_budget"), 0) or None,
+                "search_type": str(item.get("search_type") or "").strip() or None,
             }
         )
     return serialized
@@ -87,6 +105,10 @@ def map_langgraph_event(event: dict[str, Any]) -> list[dict[str, Any]]:
                 "title": str(task.get("title") or "").strip(),
                 "intent": str(task.get("intent") or "").strip(),
                 "query": str(task.get("query") or "").strip(),
+                "priority": safe_int(task.get("priority"), 0) or None,
+                "depends_on": _normalize_int_list(task.get("depends_on")),
+                "search_budget": safe_int(task.get("search_budget"), 0) or None,
+                "search_type": str(task.get("search_type") or "").strip() or None,
                 "status": "in_progress",
             }
         ] if task_id else []
@@ -119,6 +141,10 @@ def map_langgraph_event(event: dict[str, Any]) -> list[dict[str, Any]]:
                     "title": task_payload.get("title"),
                     "intent": task_payload.get("intent"),
                     "query": task_payload.get("query"),
+                    "priority": task_payload.get("priority"),
+                    "depends_on": task_payload.get("depends_on"),
+                    "search_budget": task_payload.get("search_budget"),
+                    "search_type": task_payload.get("search_type"),
                     "status": str(task_payload.get("status") or "completed"),
                     "summary": summary,
                     "sources_summary": task_payload.get("sources_summary"),

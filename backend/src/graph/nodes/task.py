@@ -550,10 +550,15 @@ async def task_node(state: dict[str, Any]) -> dict[str, Any]:
 
     config = Configuration.from_env(overrides=runtime_config)
     try:
+        task_search_budget = int(task.get("search_budget") or 0)
+    except (TypeError, ValueError):
+        task_search_budget = 0
+    try:
         max_iterations = max(
             1,
             int(
-                runtime_config.get("researcher_max_iterations")
+                task_search_budget
+                or runtime_config.get("researcher_max_iterations")
                 or config.researcher_max_iterations
                 or 1
             ),

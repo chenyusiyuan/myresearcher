@@ -11,50 +11,92 @@ from .nodes.writer import writer_node
 from .state import ResearchState
 
 
+def _coerce_positive_int(value: object) -> int | None:
+    if isinstance(value, int):
+        return value if value > 0 else None
+    if isinstance(value, str) and value.strip().isdigit():
+        parsed = int(value.strip())
+        return parsed if parsed > 0 else None
+    return None
+
+
+def _normalize_depends_on(task: dict) -> list[int]:
+    raw_depends_on = task.get("depends_on")
+    if not isinstance(raw_depends_on, list):
+        return []
+
+    normalized: list[int] = []
+    seen: set[int] = set()
+    for item in raw_depends_on:
+        parsed = _coerce_positive_int(item)
+        if parsed is None or parsed in seen:
+            continue
+        seen.add(parsed)
+        normalized.append(parsed)
+    return normalized
+
+
+def _task_sort_key(task: dict) -> tuple[int, int, str]:
+    priority = _coerce_positive_int(task.get("priority")) or 10**9
+    task_id = _coerce_positive_int(task.get("id")) or 10**9
+    title = str(task.get("title") or "").strip()
+    return (priority, task_id, title)
+
+
+def _build_task_send(state: ResearchState, task: dict) -> Send:
+    return Send(
+        "task_node",
+        {
+            "task": task,
+            "config": state["config"],
+            "research_topic": state["research_topic"],
+            "visited_urls": state["visited_urls"],
+            "research_loop_count": state.get("research_loop_count", 0),
+        },
+    )
+
+
+def _select_runnable_tasks(state: ResearchState) -> list[dict]:
+    todo_items = [
+        task
+        for task in state.get("todo_items", [])
+        if isinstance(task, dict) and str(task.get("status") or "").strip() == "pending"
+    ]
+    if not todo_items:
+        return []
+
+    completed_ids = {
+        parsed_id
+        for task in state.get("todo_items", [])
+        if isinstance(task, dict)
+        and str(task.get("status") or "").strip() == "completed"
+        and (parsed_id := _coerce_positive_int(task.get("id"))) is not None
+    }
+
+    runnable = [
+        task
+        for task in todo_items
+        if all(dep in completed_ids for dep in _normalize_depends_on(task))
+    ]
+    selected = runnable or todo_items
+    return sorted(selected, key=_task_sort_key)
+
+
 def route_tasks(state: ResearchState) -> list[Send]:
     """Fan out each planned task into an independent task node run."""
-    return [
-        Send(
-            "task_node",
-            {
-                "task": task,
-                "config": state["config"],
-                "research_topic": state["research_topic"],
-                "visited_urls": state["visited_urls"],
-                "research_loop_count": state.get("research_loop_count", 0),
-            },
-        )
-        for task in state.get("todo_items", [])
-    ]
+    return [_build_task_send(state, task) for task in _select_runnable_tasks(state)]
+
+
+def route_after_task_batch(state: ResearchState) -> list[Send] | str:
+    next_tasks = _select_runnable_tasks(state)
+    if next_tasks:
+        return [_build_task_send(state, task) for task in next_tasks]
+    return "writer"
 
 
 def route_research_more(state: ResearchState) -> list[Send]:
     """Dispatch reviewer-added pending tasks back into task_node fan-out."""
-    missing_topics = {
-        str(topic).strip()
-        for topic in state.get("review_result", {}).get("missing_topics", [])
-        if str(topic).strip()
-    }
-
-    return [
-        Send(
-            "task_node",
-            {
-                "task": task,
-                "config": state["config"],
-                "research_topic": state["research_topic"],
-                "visited_urls": state["visited_urls"],
-                "research_loop_count": state.get("research_loop_count", 0),
-            },
-        )
-        for task in state.get("todo_items", [])
-        if task.get("status") == "pending"
-        and (
-            not missing_topics
-            or str(task.get("title", "")).strip() in missing_topics
-            or str(task.get("query", "")).strip() in missing_topics
-        )
-    ]
+    return [_build_task_send(state, task) for task in _select_runnable_tasks(state)]
 
 
 def route_after_review(state: ResearchState) -> str:
@@ -82,7 +124,11 @@ def build_graph():
 
     graph.set_entry_point("planner")
     graph.add_conditional_edges("planner", route_tasks, ["task_node"])
-    graph.add_edge("task_node", "writer")
+    graph.add_conditional_edges(
+        "task_node",
+        route_after_task_batch,
+        {"writer": "writer"},
+    )
     graph.add_edge("writer", "reviewer")
     graph.add_conditional_edges(
         "reviewer",
