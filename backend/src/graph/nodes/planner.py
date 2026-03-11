@@ -34,7 +34,6 @@ def _sanitize_system_prompt() -> str:
     requirements = (
         "输出任务时，必须为每个任务同时提供以下字段：\n"
         "- priority: 整数，1 表示最高优先级\n"
-        "- depends_on: 整数 ID 列表，没有依赖时返回 []\n"
         "- search_budget: 整数，表示该任务允许的搜索预算\n"
         '- search_type: 字符串，默认使用 "search"\n'
         "请确保返回的任务 JSON 可直接解析。"
@@ -205,21 +204,6 @@ def _coerce_positive_int(value: Any) -> int | None:
     return parsed if parsed > 0 else None
 
 
-def _normalize_depends_on(value: Any) -> list[int]:
-    if not isinstance(value, list):
-        return []
-
-    normalized: list[int] = []
-    seen: set[int] = set()
-    for item in value:
-        parsed = _coerce_positive_int(item)
-        if parsed is None or parsed in seen:
-            continue
-        seen.add(parsed)
-        normalized.append(parsed)
-    return normalized
-
-
 def _normalize_tasks(
     research_topic: str,
     tasks_payload: list[dict[str, Any]],
@@ -239,7 +223,6 @@ def _normalize_tasks(
         intent = str(item.get("intent") or "聚焦主题的关键问题").strip()
         query = str(item.get("query") or research_topic).strip() or research_topic
         priority = _coerce_positive_int(item.get("priority")) or idx
-        depends_on = _normalize_depends_on(item.get("depends_on"))
         search_budget = _coerce_positive_int(item.get("search_budget")) or default_search_budget
         search_type = str(item.get("search_type") or "search").strip() or "search"
         todo_items.append(
@@ -252,7 +235,7 @@ def _normalize_tasks(
                 "summary": None,
                 "sources_summary": None,
                 "priority": priority,
-                "depends_on": depends_on,
+                "depends_on": [],
                 "search_budget": search_budget,
                 "search_type": search_type,
             }

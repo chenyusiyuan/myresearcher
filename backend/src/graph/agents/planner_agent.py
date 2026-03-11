@@ -6,14 +6,14 @@ from typing import Annotated, Any, TypedDict
 from langgraph.graph import END, StateGraph
 
 from ..nodes.planner import planner_node
-from ..state import AgentMessage, TodoItem, merge_agent_messages
+from ..state import AgentMessage, TodoItem, merge_agent_messages, merge_todo_items
 from ..supervisor import build_agent_message
 
 
 class PlannerAgentState(TypedDict):
     research_topic: str
     config: dict[str, Any]
-    todo_items: list[TodoItem]
+    todo_items: Annotated[list[TodoItem], merge_todo_items]
     agent_role: str
     messages: Annotated[list[AgentMessage], merge_agent_messages]
 

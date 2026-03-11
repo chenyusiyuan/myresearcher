@@ -40,22 +40,6 @@ def _safe_int(value: object, default: int = 0) -> int:
         return default
 
 
-def _normalize_depends_on(task: dict[str, Any]) -> list[int]:
-    raw_depends_on = task.get("depends_on")
-    if not isinstance(raw_depends_on, list):
-        return []
-
-    normalized: list[int] = []
-    seen: set[int] = set()
-    for item in raw_depends_on:
-        parsed = _coerce_positive_int(item)
-        if parsed is None or parsed in seen:
-            continue
-        seen.add(parsed)
-        normalized.append(parsed)
-    return normalized
-
-
 def _task_sort_key(task: dict[str, Any]) -> tuple[int, int, str]:
     priority = _coerce_positive_int(task.get("priority")) or 10**9
     task_id = _coerce_positive_int(task.get("id")) or 10**9
@@ -64,28 +48,12 @@ def _task_sort_key(task: dict[str, Any]) -> tuple[int, int, str]:
 
 
 def select_runnable_tasks(state: dict[str, Any]) -> list[dict[str, Any]]:
-    todo_items = [
+    pending_tasks = [
         dict(task)
         for task in state.get("todo_items", [])
         if isinstance(task, dict) and str(task.get("status") or "").strip() == "pending"
     ]
-    if not todo_items:
-        return []
-
-    completed_ids = {
-        parsed_id
-        for task in state.get("todo_items", [])
-        if isinstance(task, dict)
-        and str(task.get("status") or "").strip() == "completed"
-        and (parsed_id := _coerce_positive_int(task.get("id"))) is not None
-    }
-    runnable = [
-        task
-        for task in todo_items
-        if all(dep in completed_ids for dep in _normalize_depends_on(task))
-    ]
-    selected = runnable or todo_items
-    return sorted(selected, key=_task_sort_key)
+    return sorted(pending_tasks, key=_task_sort_key)
 
 
 def _build_researcher_send(state: dict[str, Any], task: dict[str, Any]) -> Send:
@@ -93,10 +61,10 @@ def _build_researcher_send(state: dict[str, Any], task: dict[str, Any]) -> Send:
         "researcher_agent",
         {
             "task": dict(task),
-            "config": state.get("config", {}),
-            "research_topic": state.get("research_topic", ""),
+            "runtime_config": state.get("config", {}),
+            "root_research_topic": state.get("research_topic", ""),
             "visited_urls": state.get("visited_urls", set()),
-            "research_loop_count": int(state.get("research_loop_count", 0)),
+            "input_research_loop_count": int(state.get("research_loop_count", 0)),
             "messages": [],
         },
     )

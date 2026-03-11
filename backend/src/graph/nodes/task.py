@@ -544,10 +544,14 @@ async def _rewrite_query(
 async def task_node(state: dict[str, Any]) -> dict[str, Any]:
     """Execute a single planned task via iterative search, coverage checks, and summarization."""
     task = dict(state.get("task") or {})
-    runtime_config = dict(state.get("config", {}))
-    research_topic = str(state.get("research_topic", "")).strip()
+    runtime_config = dict(state.get("runtime_config", state.get("config", {})))
+    research_topic = str(
+        state.get("root_research_topic", state.get("research_topic", ""))
+    ).strip()
     visited_urls = set(state.get("visited_urls", set()))
-    loop_count = int(state.get("research_loop_count", 0))
+    loop_count = int(
+        state.get("input_research_loop_count", state.get("research_loop_count", 0))
+    )
 
     config = Configuration.from_env(overrides=runtime_config)
     try:

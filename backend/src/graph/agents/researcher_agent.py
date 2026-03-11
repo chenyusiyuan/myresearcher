@@ -12,10 +12,18 @@ from ..supervisor import build_agent_message
 
 class ResearcherAgentState(TypedDict, total=False):
     task: dict[str, Any]
-    config: dict[str, Any]
-    research_topic: str
+    runtime_config: dict[str, Any]
+    root_research_topic: str
     visited_urls: Annotated[set[str], operator.or_]
-    research_loop_count: int
+    input_research_loop_count: int
+    research_data: Annotated[list[dict[str, Any]], operator.add]
+    evidence_store: Annotated[list[EvidenceItem], operator.add]
+    todo_items: Annotated[list[TodoItem], merge_todo_items]
+    messages: Annotated[list[AgentMessage], merge_agent_messages]
+
+
+class ResearcherAgentOutputState(TypedDict, total=False):
+    visited_urls: Annotated[set[str], operator.or_]
     research_data: Annotated[list[dict[str, Any]], operator.add]
     evidence_store: Annotated[list[EvidenceItem], operator.add]
     todo_items: Annotated[list[TodoItem], merge_todo_items]
@@ -67,7 +75,7 @@ def _researcher_handoff(state: ResearcherAgentState) -> dict[str, Any]:
 
 
 def build_researcher_graph():
-    graph = StateGraph(ResearcherAgentState)
+    graph = StateGraph(ResearcherAgentState, output_schema=ResearcherAgentOutputState)
     graph.add_node("task_node", task_node)
     graph.add_node("researcher_handoff", _researcher_handoff)
     graph.set_entry_point("task_node")
