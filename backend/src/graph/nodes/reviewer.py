@@ -179,7 +179,34 @@ def _build_report_preview(state: dict[str, Any]) -> str:
     return report[:_MAX_REPORT_CHARS] + "\n…（报告内容已截断以控制审查提示长度）"
 
 
+def _build_review_output_example() -> str:
+    example = {
+        "approved": False,
+        "score": 0.0,
+        "feedback": "具体改进建议，区分需补搜索 vs 需改写的问题",
+        "missing_topics": ["可直接用于搜索的查询词A", "查询词B"],
+        "weak_sections": ["需改写的章节名"],
+        "research_briefs": [
+            {
+                "topic": "补研主题",
+                "intent": "补研目标",
+                "query": "可直接搜索的查询词",
+                "priority": "high",
+            }
+        ],
+        "section_patch_plan": [
+            {
+                "section": "需改写章节",
+                "issue": "该章节存在的问题",
+                "instruction": "具体改写要求",
+            }
+        ],
+    }
+    return json.dumps(example, ensure_ascii=False, indent=2)
+
+
 def _build_review_prompt(state: dict[str, Any]) -> str:
+    output_example = _build_review_output_example()
     return f"""
 你是一名严格的研究报告审稿人，请审查下面这份研究报告，并只返回 JSON。
 
@@ -233,28 +260,7 @@ section_patch_plan（定向改写计划）：
 只返回 JSON，不要输出任何额外解释。
 
 返回格式：
-{{
-  "approved": false,
-  "score": 0.0,
-  "feedback": "具体改进建议，区分需补搜索 vs 需改写的问题",
-  "missing_topics": ["可直接用于搜索的查询词A", "查询词B"],
-  "weak_sections": ["需改写的章节名"],
-  "research_briefs": [
-    {
-      "topic": "补研主题",
-      "intent": "补研目标",
-      "query": "可直接搜索的查询词",
-      "priority": "high"
-    }
-  ],
-  "section_patch_plan": [
-    {
-      "section": "需改写章节",
-      "issue": "该章节存在的问题",
-      "instruction": "具体改写要求"
-    }
-  ]
-}}
+{output_example}
 """.strip()
 
 

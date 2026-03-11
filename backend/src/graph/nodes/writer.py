@@ -15,6 +15,16 @@ _MAX_CONTEXT_PER_TASK = 8000
 _MAX_EVIDENCE_SNIPPET_CHARS = 1000
 _MAX_PREVIOUS_REPORT_HEADINGS = 20
 _MAX_PREVIOUS_REPORT_FALLBACK_CHARS = 2000
+_MAX_FULL_TASKS = 8
+_MAX_FULL_TASK_CONTEXT_CHARS = 32000
+_MAX_FULL_EVIDENCE_ITEMS = 40
+_MAX_FULL_EVIDENCE_CHARS = 20000
+_MAX_PATCH_TASKS = 4
+_MAX_PATCH_TASK_CONTEXT_CHARS = 12000
+_MAX_PATCH_EVIDENCE_ITEMS = 16
+_MAX_PATCH_EVIDENCE_CHARS = 8000
+_MAX_PATCH_SECTION_CHARS = 12000
+_MAX_PATCH_OUTLINE_HEADINGS = 30
 _SECTION_HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 
 
@@ -32,27 +42,52 @@ def _coerce_task_id(value: Any) -> int | None:
         return None
 
 
-def _build_task_context_block(state: dict[str, Any]) -> str:
+def _truncate_text(text: str, limit: int) -> str:
+    cleaned = str(text or "").strip()
+    if limit <= 0 or len(cleaned) <= limit:
+        return cleaned
+    return cleaned[:limit].rstrip() + "\n…（内容已截断）"
+
+
+def _build_task_context_block(
+    state: dict[str, Any],
+    *,
+    max_items: int | None = None,
+    newest_first: bool = False,
+    max_total_chars: int | None = None,
+    summary_chars: int = 5000,
+    sources_chars: int = 4000,
+    context_chars: int = _MAX_CONTEXT_PER_TASK,
+) -> str:
     task_meta = {
         task_id: item
         for item in state.get("todo_items", [])
         if isinstance(item, dict) and (task_id := _coerce_task_id(item.get("id"))) is not None
     }
 
+    research_items = [
+        item for item in state.get("research_data", []) if isinstance(item, dict)
+    ]
+    if newest_first:
+        research_items = list(reversed(research_items))
+
     blocks: list[str] = []
-    for item in state.get("research_data", []):
-        if not isinstance(item, dict):
-            continue
+    total_chars = 0
+    for item in research_items:
         task_id = item.get("task_id")
         task = task_meta.get(task_id, {})
         title = str(task.get("title") or item.get("topic") or f"任务 {task_id}").strip()
         intent = str(task.get("intent") or "").strip()
         query = str(task.get("query") or "").strip()
-        summary = str(item.get("summary") or task.get("summary") or "暂无可用信息").strip()
+        summary = _truncate_text(
+            str(item.get("summary") or task.get("summary") or "暂无可用信息"),
+            summary_chars,
+        )
         context = str(item.get("context") or "").strip()
-        sources_summary = str(
-            item.get("sources_summary") or task.get("sources_summary") or "暂无来源"
-        ).strip()
+        sources_summary = _truncate_text(
+            str(item.get("sources_summary") or task.get("sources_summary") or "暂无来源"),
+            sources_chars,
+        )
         notices = item.get("notices") or []
         notices_block = "\n".join(f"- {str(notice).strip()}" for notice in notices if str(notice).strip())
 
@@ -66,22 +101,38 @@ def _build_task_context_block(state: dict[str, Any]) -> str:
         if notices_block:
             block.append(f"- 系统提示：\n{notices_block}")
         if context:
-            block.append(f"- 原始上下文：\n{context[:_MAX_CONTEXT_PER_TASK]}")
-        blocks.append("\n".join(block))
+            block.append(f"- 原始上下文：\n{_truncate_text(context, context_chars)}")
+        block_text = "\n".join(block)
+        if max_total_chars is not None and blocks and total_chars + len(block_text) > max_total_chars:
+            break
+        blocks.append(block_text)
+        total_chars += len(block_text)
+        if max_items is not None and len(blocks) >= max_items:
+            break
 
     return "\n\n".join(blocks).strip()
 
 
-def _build_evidence_block(evidence_store: list[dict[str, Any]]) -> str:
+def _build_evidence_block(
+    evidence_store: list[dict[str, Any]],
+    *,
+    max_items: int | None = None,
+    newest_first: bool = False,
+    max_total_chars: int | None = None,
+    snippet_chars: int = _MAX_EVIDENCE_SNIPPET_CHARS,
+) -> str:
+    evidence_items = [item for item in evidence_store if isinstance(item, dict)]
+    if newest_first:
+        evidence_items = list(reversed(evidence_items))
+
     lines: list[str] = []
-    for item in evidence_store:
-        if not isinstance(item, dict):
-            continue
+    total_chars = 0
+    for item in evidence_items:
         url = str(item.get("url") or "").strip()
         if not url:
             continue
         title = str(item.get("title") or url).strip()
-        snippet = str(item.get("snippet") or "").strip()[:_MAX_EVIDENCE_SNIPPET_CHARS]
+        snippet = _truncate_text(str(item.get("snippet") or ""), snippet_chars)
         score = item.get("relevance_score", 0.0)
         claim_text = str(item.get("claim_text") or "").strip()
         support_type = str(item.get("support_type") or "").strip()
@@ -97,7 +148,13 @@ def _build_evidence_block(evidence_store: list[dict[str, Any]]) -> str:
         if claim_text:
             detail_lines.append(f"  绑定论断：{claim_text}")
         detail_lines.append(f"  摘要：{snippet or '暂无摘要'}")
-        lines.append("\n".join(detail_lines))
+        line_text = "\n".join(detail_lines)
+        if max_total_chars is not None and lines and total_chars + len(line_text) > max_total_chars:
+            break
+        lines.append(line_text)
+        total_chars += len(line_text)
+        if max_items is not None and len(lines) >= max_items:
+            break
     return "\n".join(lines).strip()
 
 
@@ -167,8 +224,16 @@ def _build_review_block(review_result: dict[str, Any], previous_report: str) -> 
 
 def _build_writer_user_prompt(state: dict[str, Any]) -> str:
     research_topic = str(state.get("research_topic") or "").strip()
-    task_block = _build_task_context_block(state)
-    evidence_block = _build_evidence_block(state.get("evidence_store", []))
+    task_block = _build_task_context_block(
+        state,
+        max_items=_MAX_FULL_TASKS,
+        max_total_chars=_MAX_FULL_TASK_CONTEXT_CHARS,
+    )
+    evidence_block = _build_evidence_block(
+        state.get("evidence_store", []),
+        max_items=_MAX_FULL_EVIDENCE_ITEMS,
+        max_total_chars=_MAX_FULL_EVIDENCE_CHARS,
+    )
     review_block = _build_review_block(
         state.get("review_result", {}),
         str(state.get("structured_report") or ""),
@@ -193,8 +258,22 @@ def _build_writer_user_prompt(state: dict[str, Any]) -> str:
 
 def _build_patch_supporting_context(state: dict[str, Any]) -> str:
     research_topic = str(state.get("research_topic") or "").strip()
-    task_block = _build_task_context_block(state)
-    evidence_block = _build_evidence_block(state.get("evidence_store", []))
+    task_block = _build_task_context_block(
+        state,
+        max_items=_MAX_PATCH_TASKS,
+        newest_first=True,
+        max_total_chars=_MAX_PATCH_TASK_CONTEXT_CHARS,
+        summary_chars=2500,
+        sources_chars=2000,
+        context_chars=2000,
+    )
+    evidence_block = _build_evidence_block(
+        state.get("evidence_store", []),
+        max_items=_MAX_PATCH_EVIDENCE_ITEMS,
+        newest_first=True,
+        max_total_chars=_MAX_PATCH_EVIDENCE_CHARS,
+        snippet_chars=500,
+    )
     return "\n\n".join(
         [
             f"研究主题：{research_topic}",
@@ -236,6 +315,13 @@ def _ensure_references(report: str, evidence_store: list[dict[str, Any]]) -> str
     if not report.strip():
         return references
     return f"{report.strip()}\n\n{references}"
+
+
+def _build_report_outline(report: str) -> str:
+    headings = re.findall(r"^#{1,3}\s+.+$", report, flags=re.MULTILINE)
+    if headings:
+        return "\n".join(headings[:_MAX_PATCH_OUTLINE_HEADINGS])
+    return _truncate_text(report, _MAX_PREVIOUS_REPORT_FALLBACK_CHARS)
 
 
 def _find_section_span(report: str, section_name: str) -> tuple[int, int, str] | None:
@@ -344,9 +430,12 @@ async def _patch_report(
             continue
 
         start, end, original_heading = section_span
+        current_section = _truncate_text(patched_report[start:end], _MAX_PATCH_SECTION_CHARS)
+        report_outline = _build_report_outline(patched_report)
         prompt = (
             f"{_build_patch_supporting_context(state)}\n\n"
-            f"以下是完整报告：\n{patched_report}\n\n"
+            f"当前报告结构：\n{report_outline or '暂无报告结构'}\n\n"
+            f"当前待修改章节全文：\n{current_section}\n\n"
             f"请修改章节「{section}」：\n"
             f"问题：{issue or '该章节仍需优化结构、论证或表达'}\n"
             f"修改要求：{instruction}\n\n"

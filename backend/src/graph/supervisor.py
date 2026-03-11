@@ -40,6 +40,10 @@ def _safe_int(value: object, default: int = 0) -> int:
         return default
 
 
+def _revision_limit_reached(revision_count: int, max_revisions: int) -> bool:
+    return revision_count >= max_revisions
+
+
 def _task_sort_key(task: dict[str, Any]) -> tuple[int, int, str]:
     priority = _coerce_positive_int(task.get("priority")) or 10**9
     task_id = _coerce_positive_int(task.get("id")) or 10**9
@@ -118,6 +122,20 @@ def _dispatch_researchers(
     )
 
 
+def _finalize_todo_items(todo_items: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    finalized: list[dict[str, Any]] = []
+    for item in todo_items or []:
+        if not isinstance(item, dict):
+            continue
+        status = str(item.get("status") or "").strip()
+        summary = str(item.get("summary") or "").strip()
+        sources_summary = str(item.get("sources_summary") or "").strip()
+        if status in {"pending", "in_progress"} and not summary and not sources_summary:
+            continue
+        finalized.append(dict(item))
+    return finalized
+
+
 def _finalize_report(state: GlobalState) -> Command:
     report = str(state.get("structured_report") or state.get("final_report") or "").strip()
     return Command(
@@ -126,6 +144,7 @@ def _finalize_report(state: GlobalState) -> Command:
             "status": "done",
             "final_report": report,
             "structured_report": report,
+            "todo_items": _finalize_todo_items(state.get("todo_items", [])),
         },
     )
 
@@ -170,21 +189,19 @@ def supervisor_node(state: GlobalState) -> Command:
         return _finalize_report(state)
 
     if message_type == "review_dispatch":
-        if revision_count > max_revisions + 1:
+        if _revision_limit_reached(revision_count, max_revisions):
             return _finalize_report(state)
         next_tasks = select_runnable_tasks(state)
         if next_tasks:
             return _dispatch_researchers(state, next_tasks, supplemental=True)
-        if revision_count > max_revisions:
-            return _finalize_report(state)
         return Command(goto="writer_agent", update={"status": "writing"})
 
     if message_type in {"patch_order", "rewrite_order"}:
-        if revision_count > max_revisions:
+        if _revision_limit_reached(revision_count, max_revisions):
             return _finalize_report(state)
         return Command(goto="writer_agent", update={"status": "writing"})
 
-    if revision_count > max_revisions:
+    if _revision_limit_reached(revision_count, max_revisions):
         return _finalize_report(state)
 
     if str(state.get("structured_report") or "").strip():
