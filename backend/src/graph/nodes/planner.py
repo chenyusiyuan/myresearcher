@@ -30,7 +30,16 @@ def _sanitize_system_prompt() -> str:
         "4. 在创建或更新任务时，必须调用 `note` 工具同步任务信息（这是唯一会写入笔记的途径）。\n",
         "",
     )
-    return prompt.strip()
+    prompt = prompt.strip()
+    requirements = (
+        "输出任务时，必须为每个任务同时提供以下字段：\n"
+        "- priority: 整数，1 表示最高优先级\n"
+        "- depends_on: 整数 ID 列表，没有依赖时返回 []\n"
+        "- search_budget: 整数，表示该任务允许的搜索预算\n"
+        '- search_type: 字符串，默认使用 "search"\n'
+        "请确保返回的任务 JSON 可直接解析。"
+    )
+    return f"{prompt}\n\n{requirements}".strip()
 
 
 def _build_planner_prompt(research_topic: str) -> str:
@@ -49,7 +58,7 @@ def _build_agent_role(research_topic: str) -> str:
     )
 
 
-def _fallback_task(research_topic: str) -> TodoItem:
+def _fallback_task(research_topic: str, default_search_budget: int = 2) -> TodoItem:
     return {
         "id": 1,
         "title": "基础背景梳理",
@@ -58,6 +67,10 @@ def _fallback_task(research_topic: str) -> TodoItem:
         "status": "pending",
         "summary": None,
         "sources_summary": None,
+        "priority": 1,
+        "depends_on": [],
+        "search_budget": max(1, default_search_budget),
+        "search_type": "search",
     }
 
 
@@ -178,21 +191,64 @@ def _extract_tasks(raw_response: str) -> list[dict[str, Any]]:
     return []
 
 
-def _normalize_tasks(research_topic: str, tasks_payload: list[dict[str, Any]]) -> list[TodoItem]:
+def _coerce_positive_int(value: Any) -> int | None:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _normalize_depends_on(value: Any) -> list[int]:
+    if not isinstance(value, list):
+        return []
+
+    normalized: list[int] = []
+    seen: set[int] = set()
+    for item in value:
+        parsed = _coerce_positive_int(item)
+        if parsed is None or parsed in seen:
+            continue
+        seen.add(parsed)
+        normalized.append(parsed)
+    return normalized
+
+
+def _normalize_tasks(
+    research_topic: str,
+    tasks_payload: list[dict[str, Any]],
+    runtime_config: dict[str, Any],
+) -> list[TodoItem]:
+    config = Configuration.from_env(overrides=runtime_config)
+    default_search_budget = max(1, int(config.deep_research_depth or 1))
     todo_items: list[TodoItem] = []
+    used_ids: set[int] = set()
     for idx, item in enumerate(tasks_payload, start=1):
+        task_id = _coerce_positive_int(item.get("id")) or idx
+        while task_id in used_ids:
+            task_id += 1
+        used_ids.add(task_id)
+
         title = str(item.get("title") or f"任务{idx}").strip()
         intent = str(item.get("intent") or "聚焦主题的关键问题").strip()
         query = str(item.get("query") or research_topic).strip() or research_topic
+        priority = _coerce_positive_int(item.get("priority")) or idx
+        depends_on = _normalize_depends_on(item.get("depends_on"))
+        search_budget = _coerce_positive_int(item.get("search_budget")) or default_search_budget
+        search_type = str(item.get("search_type") or "search").strip() or "search"
         todo_items.append(
             {
-                "id": idx,
+                "id": task_id,
                 "title": title,
                 "intent": intent,
                 "query": query,
                 "status": "pending",
                 "summary": None,
                 "sources_summary": None,
+                "priority": priority,
+                "depends_on": depends_on,
+                "search_budget": search_budget,
+                "search_type": search_type,
             }
         )
     return todo_items
@@ -202,12 +258,18 @@ async def planner_node(state: ResearchState) -> dict[str, Any]:
     """Generate the initial todo list for the LangGraph research workflow."""
     research_topic = state.get("research_topic", "").strip()
     runtime_config = dict(state.get("config", {}))
+    config = Configuration.from_env(overrides=runtime_config)
 
     response_text = await _request_planner_response(research_topic, runtime_config)
     tasks_payload = _extract_tasks(response_text)
-    todo_items = _normalize_tasks(research_topic, tasks_payload)
+    todo_items = _normalize_tasks(research_topic, tasks_payload, runtime_config)
     if not todo_items:
-        todo_items = [_fallback_task(research_topic)]
+        todo_items = [
+            _fallback_task(
+                research_topic,
+                default_search_budget=max(1, int(config.deep_research_depth or 1)),
+            )
+        ]
 
     return {
         "todo_items": todo_items,
