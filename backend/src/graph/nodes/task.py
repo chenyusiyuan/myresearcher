@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import re
@@ -17,11 +18,17 @@ from utils import format_sources, strip_thinking_tokens, with_llm_retry
 
 from .planner import _resolve_client, _resolve_model_config
 
+try:
+    import json_repair
+except ImportError:  # pragma: no cover - optional dependency
+    json_repair = None
+
 
 _SOURCE_LIMIT = 8
 _FAST_PATH_CHAR_THRESHOLD = 16000
 _DEFAULT_SIMILARITY_THRESHOLD = 0.42
 _DEFAULT_EMBEDDING_SELECTOR = "openai:text-embedding-3-small"
+_DEFAULT_COVERAGE_THRESHOLD = 0.75
 logger = logging.getLogger(__name__)
 
 
@@ -125,6 +132,15 @@ def _normalize_pages(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _format_fast_path_context(pages: list[dict[str, Any]]) -> str:
     return PromptFamily.pretty_print_docs(pages[:_SOURCE_LIMIT], top_n=_SOURCE_LIMIT)
+
+
+def _load_json(candidate: str) -> Any:
+    if json_repair is not None:
+        try:
+            return json_repair.loads(candidate)
+        except Exception:
+            pass
+    return json.loads(candidate)
 
 
 def _resolve_embeddings(runtime_config: dict[str, Any]):
@@ -244,6 +260,7 @@ async def _generate_followup_queries(
     runtime_config: dict[str, Any],
     num_queries: int = 2,
 ) -> list[str]:
+    # NOTE: 保留备用，当前已由 _assess_coverage + _rewrite_query 的迭代闭环替代。
     """Ask the LLM what follow-up queries would deepen the research for this task."""
     if not initial_context.strip():
         return []
@@ -279,8 +296,141 @@ async def _generate_followup_queries(
         return []
 
 
+async def _assess_coverage(
+    task: dict[str, Any],
+    context: str,
+    runtime_config: dict[str, Any],
+    coverage_threshold: float = _DEFAULT_COVERAGE_THRESHOLD,
+) -> dict[str, Any]:
+    fallback = {
+        "coverage_score": 0.0,
+        "is_sufficient": False,
+        "unresolved_questions": [],
+        "reasoning": "解析失败",
+    }
+    normalized_threshold = max(0.0, min(1.0, coverage_threshold))
+    threshold_text = f"{normalized_threshold:.2f}".rstrip("0").rstrip(".")
+    config, provider, model = _resolve_model_config(runtime_config, selector_key="smart_llm")
+    client = _resolve_client(config, provider)
+    prompt = (
+        f"研究任务：{task.get('title', '')}\n"
+        f"任务目标：{task.get('intent', '')}\n"
+        f"原始查询：{task.get('query', '')}\n\n"
+        f"当前已收集的上下文：\n{context[:3000]}\n\n"
+        "请评估当前信息的覆盖度，并以 JSON 格式返回：\n"
+        "{\n"
+        '  "coverage_score": 0.0到1.0之间的浮点数,\n'
+        '  "is_sufficient": true或false,\n'
+        '  "unresolved_questions": ["还未覆盖的具体问题1", "问题2"],\n'
+        '  "reasoning": "简短说明"\n'
+        "}\n\n"
+        f"只返回 JSON，不要其他内容。coverage_score >= {threshold_text} 时 is_sufficient 才能为 true。"
+    )
+
+    try:
+        response = await with_llm_retry(
+            lambda: client.chat.completions.create(
+                model=model,
+                temperature=0,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "你是一名严格的研究质量评估员。你的任务是判断当前收集到的信息是否足以完成指定的研究任务。",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+            )
+        )
+        content = response.choices[0].message.content or ""
+        content = strip_tool_calls(strip_thinking_tokens(content)).strip()
+        match = re.search(r"\{.*\}", content, flags=re.DOTALL)
+        if not match:
+            return fallback
+
+        payload = _load_json(match.group(0))
+        try:
+            coverage_score = float(payload.get("coverage_score", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            coverage_score = 0.0
+        coverage_score = max(0.0, min(1.0, coverage_score))
+
+        raw_is_sufficient = payload.get("is_sufficient")
+        if isinstance(raw_is_sufficient, bool):
+            is_sufficient = raw_is_sufficient
+        else:
+            is_sufficient = str(raw_is_sufficient).strip().lower() == "true"
+        is_sufficient = is_sufficient and coverage_score >= normalized_threshold
+
+        unresolved_questions = payload.get("unresolved_questions")
+        if not isinstance(unresolved_questions, list):
+            unresolved_questions = []
+        unresolved_questions = [
+            str(item).strip()
+            for item in unresolved_questions
+            if str(item).strip()
+        ]
+
+        reasoning = str(payload.get("reasoning") or "").strip() or fallback["reasoning"]
+        return {
+            "coverage_score": coverage_score,
+            "is_sufficient": is_sufficient,
+            "unresolved_questions": unresolved_questions,
+            "reasoning": reasoning,
+        }
+    except Exception as exc:
+        logger.warning("Failed to assess coverage: %s", exc)
+        return fallback
+
+
+async def _rewrite_query(
+    task: dict[str, Any],
+    unresolved_questions: list[str],
+    tried_queries: list[str],
+    runtime_config: dict[str, Any],
+) -> str:
+    if not unresolved_questions:
+        return ""
+
+    config, provider, model = _resolve_model_config(runtime_config, selector_key="smart_llm")
+    client = _resolve_client(config, provider)
+    tried_query_lines = "\n".join(f"- {query}" for query in tried_queries) or "- 无"
+    unresolved_lines = "\n".join(f"- {question}" for question in unresolved_questions) or "- 无"
+    prompt = (
+        f"研究任务：{task.get('title', '')}\n"
+        f"任务目标：{task.get('intent', '')}\n\n"
+        f"已尝试的查询（请勿重复）：\n{tried_query_lines}\n\n"
+        f"当前未覆盖的问题：\n{unresolved_lines}\n\n"
+        "请生成一个新的、更有针对性的搜索查询，直接输出查询字符串，不要解释，不要引号。"
+    )
+
+    try:
+        response = await with_llm_retry(
+            lambda: client.chat.completions.create(
+                model=model,
+                temperature=0.2,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "你是一名专业研究员，擅长设计精准的搜索查询以填补研究空白。",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+            )
+        )
+        content = response.choices[0].message.content or ""
+        content = strip_tool_calls(strip_thinking_tokens(content)).strip()
+        query = content.splitlines()[0].strip() if content else ""
+        query = re.sub(r"^\s*(?:[-*]|\d+[.)])\s*", "", query)
+        query = query.strip().strip("\"'").strip()
+        query = re.sub(r"\s+", " ", query)
+        return query
+    except Exception as exc:
+        logger.warning("Failed to rewrite query: %s", exc)
+        return ""
+
+
 async def task_node(state: dict[str, Any]) -> dict[str, Any]:
-    """Execute a single planned task via iterative search, compression, and summarization."""
+    """Execute a single planned task via iterative search, coverage checks, and summarization."""
     task = dict(state.get("task") or {})
     runtime_config = dict(state.get("config", {}))
     research_topic = str(state.get("research_topic", "")).strip()
@@ -288,66 +438,115 @@ async def task_node(state: dict[str, Any]) -> dict[str, Any]:
     loop_count = int(state.get("research_loop_count", 0))
 
     config = Configuration.from_env(overrides=runtime_config)
-    depth = max(1, int(runtime_config.get("deep_research_depth") or config.deep_research_depth or 1))
-
-    # --- Round 1: initial search ---
-    search_result, notices, answer_text, backend_label = await asyncio.to_thread(
-        dispatch_search,
-        str(task.get("query") or research_topic),
-        config,
-        loop_count,
-    )
-    filtered_search_result, updated_urls, filtered_results = _filter_new_results(
-        search_result,
-        visited_urls,
-    )
-    all_filtered_results = list(filtered_results)
-    all_notices = list(notices)
-
-    # --- Rounds 2..depth: generate follow-up queries and search again ---
-    if depth > 1:
-        initial_pages = _normalize_pages(filtered_results)
-        initial_context_preview = _format_fast_path_context(initial_pages)
-        followup_queries = await _generate_followup_queries(
-            research_topic=research_topic,
-            task=task,
-            initial_context=initial_context_preview,
-            runtime_config=runtime_config,
-            num_queries=depth - 1,
+    try:
+        max_iterations = max(
+            1,
+            int(
+                runtime_config.get("researcher_max_iterations")
+                or config.researcher_max_iterations
+                or 1
+            ),
         )
-        for fq in followup_queries:
-            try:
-                fq_result, fq_notices, _, _ = await asyncio.to_thread(
-                    dispatch_search,
-                    fq,
-                    config,
-                    loop_count,
-                )
-                _, updated_urls, fq_filtered = _filter_new_results(fq_result, updated_urls)
-                all_filtered_results.extend(fq_filtered)
-                all_notices.extend(fq_notices)
-            except Exception as exc:
-                logger.warning("Follow-up search failed for query '%s': %s", fq, exc)
+    except (TypeError, ValueError):
+        max_iterations = max(1, int(config.researcher_max_iterations or 1))
+    try:
+        coverage_threshold = float(
+            runtime_config.get("researcher_coverage_threshold")
+            or config.researcher_coverage_threshold
+            or _DEFAULT_COVERAGE_THRESHOLD
+        )
+    except (TypeError, ValueError):
+        coverage_threshold = _DEFAULT_COVERAGE_THRESHOLD
+    coverage_threshold = max(0.0, min(1.0, coverage_threshold))
 
-    # Build merged search result payload for sources_summary
+    current_query = str(task.get("query") or research_topic).strip()
+    tried_queries = [current_query] if current_query else []
+    all_filtered_results: list[dict[str, Any]] = []
+    all_notices: list[str] = []
+    updated_urls = set(visited_urls)
+    context = ""
+    backend_label = ""
+    first_answer_text: str | None = None
+
+    for iteration in range(max_iterations):
+        try:
+            search_result, notices, answer_text, current_backend_label = await asyncio.to_thread(
+                dispatch_search,
+                current_query,
+                config,
+                loop_count,
+            )
+        except Exception as exc:
+            if iteration == 0:
+                raise
+            logger.warning("Iterative search failed for query '%s': %s", current_query, exc)
+            break
+
+        _, updated_urls, filtered_results = _filter_new_results(search_result, updated_urls)
+        all_filtered_results.extend(filtered_results)
+        all_notices.extend(list(notices or []))
+        if current_backend_label:
+            backend_label = current_backend_label
+        if answer_text and not first_answer_text:
+            first_answer_text = answer_text
+
+        pages = _normalize_pages(all_filtered_results)
+        compressed_context = (
+            await _compress_context(current_query, runtime_config, pages) if pages else ""
+        )
+        context = compressed_context
+        if not context:
+            _, fallback_context = prepare_research_context(
+                {"results": all_filtered_results},
+                None,
+                config,
+            )
+            context = fallback_context
+        context = _prepend_answer_text(context, first_answer_text)
+
+        if iteration == max_iterations - 1:
+            break
+
+        assessment = await _assess_coverage(
+            task,
+            context,
+            runtime_config,
+            coverage_threshold=coverage_threshold,
+        )
+        try:
+            coverage_score = float(assessment.get("coverage_score", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            coverage_score = 0.0
+
+        if assessment.get("is_sufficient") or coverage_score >= coverage_threshold:
+            break
+
+        unresolved_questions = assessment.get("unresolved_questions") or []
+        unresolved_questions = [
+            str(item).strip()
+            for item in unresolved_questions
+            if str(item).strip()
+        ]
+        if not unresolved_questions:
+            break
+
+        new_query = await _rewrite_query(
+            task=task,
+            unresolved_questions=unresolved_questions,
+            tried_queries=tried_queries,
+            runtime_config=runtime_config,
+        )
+        if not new_query or new_query in tried_queries:
+            break
+
+        tried_queries.append(new_query)
+        current_query = new_query
+
     merged_search_result = {"results": all_filtered_results}
     sources_summary = format_sources(merged_search_result)
-    pages = _normalize_pages(all_filtered_results)
-
-    compressed_context = await _compress_context(
-        str(task.get("query") or research_topic),
-        runtime_config,
-        pages,
-    ) if pages else ""
-    context = compressed_context
     if not context:
-        _, fallback_context = prepare_research_context(
-            filtered_search_result,
-            None,
-            config,
-        )
+        _, fallback_context = prepare_research_context(merged_search_result, None, config)
         context = fallback_context
-    context = _prepend_answer_text(context, answer_text)
     summary = await _generate_task_summary(
         research_topic=research_topic,
         task=task,

@@ -31,6 +31,16 @@ class Configuration(BaseModel):
         title="Research Depth",
         description="Number of recursive deep research rounds to allow per task",
     )
+    researcher_max_iterations: int = Field(
+        default=3,
+        title="Researcher Max Iterations",
+        description="Researcher 最大搜索迭代轮数",
+    )
+    researcher_coverage_threshold: float = Field(
+        default=0.75,
+        title="Researcher Coverage Threshold",
+        description="覆盖度阈值，达到即停止搜索",
+    )
     deep_research_concurrency: int = Field(
         default=4,
         title="Research Concurrency",
