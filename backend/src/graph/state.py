@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import operator
-from typing import Annotated, Any, NotRequired, Optional, TypedDict
+from typing import Annotated, Any, Optional, TypedDict
+
+from typing_extensions import NotRequired
 
 
 def _coerce_task_id(value: object) -> int | None:
