@@ -110,6 +110,9 @@ def _build_initial_state(payload: ResearchRequest, config: Configuration) -> dic
         "max_revisions": safe_int(runtime_config.get("max_revisions"), 2),
         "agent_role": "",
         "config": runtime_config,
+        "messages": [],
+        "final_report": None,
+        "status": "init",
     }
 
 
@@ -136,10 +139,10 @@ def create_app() -> FastAPI:
             base_url = config.llm_base_url or "unset"
 
         logger.info(
-            "DeepResearch configuration loaded: provider=%s model=%s base_url=%s search_api=%s "
-            "breadth=%s depth=%s concurrency=%s max_loops=%s max_revisions=%s "
-            "smart_llm=%s strategic_llm=%s embedding_model=%s similarity_threshold=%s "
-            "fetch_full_page=%s strip_thinking=%s api_key=%s",
+            "DeepResearch configuration loaded: provider={} model={} base_url={} search_api={} "
+            "breadth={} depth={} concurrency={} max_loops={} max_revisions={} "
+            "smart_llm={} strategic_llm={} embedding_model={} similarity_threshold={} "
+            "fetch_full_page={} strip_thinking={} timeout={} api_key={}",
             config.llm_provider,
             config.resolved_model() or "unset",
             base_url,
@@ -155,6 +158,7 @@ def create_app() -> FastAPI:
             config.similarity_threshold,
             config.fetch_full_page,
             config.strip_thinking_tokens,
+            config.llm_timeout_seconds,
             _mask_secret(config.llm_api_key),
         )
 
@@ -175,7 +179,7 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=500, detail="Research failed") from exc
 
         return ResearchResponse(
-            report_markdown=str(result.get("structured_report") or "").strip(),
+            report_markdown=str(result.get("final_report") or result.get("structured_report") or "").strip(),
             todo_items=serialize_todo_items(result.get("todo_items")),
         )
 

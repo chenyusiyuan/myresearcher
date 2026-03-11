@@ -49,6 +49,7 @@ class _EmbeddingAdapter:
         base_url = self.embedding_kwargs.pop("openai_api_base", None)
         if base_url:
             client_kwargs["base_url"] = base_url
+        client_kwargs["timeout"] = self.timeout
 
         client = OpenAI(**client_kwargs)
         response = client.embeddings.create(

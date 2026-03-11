@@ -5,14 +5,16 @@ from typing import Any
 from typing_extensions import NotRequired, TypedDict
 
 from config import Configuration, SearchAPI
-from graph.builder import route_after_review, route_after_task_batch, route_research_more, route_tasks
-from graph.nodes.planner import planner_node
-from graph.nodes.research_more import research_more_node
-from graph.nodes.reviewer import reviewer_node
-from graph.nodes.task import task_node
-from graph.nodes.writer import writer_node
-from graph.state import ResearchState, TodoItem
-from langgraph.graph import END, StateGraph
+from langgraph.graph import StateGraph
+
+from graph.agents import (
+    build_planner_graph,
+    build_researcher_graph,
+    build_reviewer_graph,
+    build_writer_graph,
+)
+from graph.state import GlobalState, TodoItem
+from graph.supervisor import supervisor_node
 
 
 class StudioInputState(TypedDict):
@@ -73,45 +75,35 @@ def _build_initial_state(state: StudioInputState) -> dict[str, Any]:
         "max_revisions": int(runtime_config.get("max_revisions") or 2),
         "agent_role": "",
         "config": runtime_config,
+        "messages": [],
+        "final_report": None,
+        "status": "init",
     }
 
 
 def prepare_studio_input(state: StudioInputState) -> dict[str, Any]:
-    """Normalize LangGraph Studio input into the internal research state."""
+    """Normalize LangGraph Studio input into the internal global state."""
 
     return _build_initial_state(state)
 
 
 def build_studio_graph():
     graph = StateGraph(
-        ResearchState,
+        GlobalState,
         input_schema=StudioInputState,
         output_schema=StudioOutputState,
     )
     graph.add_node("prepare", prepare_studio_input)
-    graph.add_node("planner", planner_node)
-    graph.add_node("task_node", task_node)
-    graph.add_node("writer", writer_node)
-    graph.add_node("reviewer", reviewer_node)
-    graph.add_node("research_more", research_more_node)
+    graph.add_node("supervisor", supervisor_node)
+    graph.add_node("planner_agent", build_planner_graph())
+    graph.add_node("researcher_agent", build_researcher_graph())
+    graph.add_node("writer_agent", build_writer_graph())
+    graph.add_node("reviewer_agent", build_reviewer_graph())
 
     graph.set_entry_point("prepare")
-    graph.add_edge("prepare", "planner")
-    graph.add_conditional_edges("planner", route_tasks, ["task_node"])
-    graph.add_conditional_edges(
-        "task_node",
-        route_after_task_batch,
-        {"writer": "writer"},
-    )
-    graph.add_edge("writer", "reviewer")
-    graph.add_conditional_edges(
-        "reviewer",
-        route_after_review,
-        {
-            "end": END,
-            "research_more": "research_more",
-            "rewrite": "writer",
-        },
-    )
-    graph.add_conditional_edges("research_more", route_research_more, ["task_node"])
+    graph.add_edge("prepare", "supervisor")
+    graph.add_edge("planner_agent", "supervisor")
+    graph.add_edge("researcher_agent", "supervisor")
+    graph.add_edge("writer_agent", "supervisor")
+    graph.add_edge("reviewer_agent", "supervisor")
     return graph.compile(name="deep_researcher")

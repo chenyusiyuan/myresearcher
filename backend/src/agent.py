@@ -35,6 +35,9 @@ def _build_initial_state(topic: str, config: Configuration) -> dict[str, Any]:
         "max_revisions": _safe_int(runtime_config.get("max_revisions"), 2),
         "agent_role": "",
         "config": runtime_config,
+        "messages": [],
+        "final_report": None,
+        "status": "init",
     }
 
 
@@ -74,7 +77,7 @@ class DeepResearchAgent:
 
     def run(self, topic: str) -> SummaryStateOutput:
         result = asyncio.run(self.graph.ainvoke(_build_initial_state(topic, self.config)))
-        report = str(result.get("structured_report") or "").strip()
+        report = str(result.get("final_report") or result.get("structured_report") or "").strip()
         return SummaryStateOutput(
             running_summary=report,
             report_markdown=report,

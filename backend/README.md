@@ -32,6 +32,7 @@ cp .env.example .env
 
 - `LLM_PROVIDER=custom`
 - `LLM_BASE_URL=https://api.deepseek.com`
+- `LLM_TIMEOUT_SECONDS=30`
 - `SMART_LLM=deepseek-chat`
 - `STRATEGIC_LLM=deepseek-reasoner`
 
@@ -44,6 +45,7 @@ cp .env.example .env
 说明：
 
 - 如果没有配置可用嵌入模型，语义压缩会自动降级到快速路径，不会阻塞主流程。
+- 如果你通过本机代理访问 DeepSeek，建议保留或调大 `LLM_TIMEOUT_SECONDS`，避免被 OpenAI 兼容客户端默认的短连接超时提前中断。
 - 如果使用 Ollama 或 LMStudio，请按 `.env.example` 中的注释切换 `LLM_PROVIDER` 和模型选择器。
 
 ## 3. 启动

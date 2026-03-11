@@ -115,7 +115,13 @@ def _resolve_client(config: Configuration, provider: str) -> AsyncOpenAI:
         base_url = config.llm_base_url
         api_key = config.llm_api_key or os.getenv("OPENAI_API_KEY") or "EMPTY"
 
-    client_kwargs: dict[str, Any] = {"api_key": api_key}
+    client_kwargs: dict[str, Any] = {
+        "api_key": api_key,
+        # The OpenAI SDK defaults to a 5 second connect timeout, which is too
+        # aggressive for slower proxy chains and causes false "can't connect"
+        # failures before DeepSeek responds.
+        "timeout": config.llm_timeout_seconds,
+    }
     if base_url:
         client_kwargs["base_url"] = base_url
     return AsyncOpenAI(**client_kwargs)

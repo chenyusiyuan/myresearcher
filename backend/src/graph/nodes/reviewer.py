@@ -40,6 +40,23 @@ def _normalize_priority(value: Any) -> str:
     return "medium"
 
 
+def _priority_to_rank(value: Any) -> int:
+    priority = _normalize_priority(value)
+    if priority == "high":
+        return 1
+    if priority == "low":
+        return 3
+    return 2
+
+
+def _default_search_budget(state: dict[str, Any]) -> int:
+    config = state.get("config", {})
+    try:
+        return max(1, int((config or {}).get("deep_research_depth") or 1))
+    except (TypeError, ValueError):
+        return 1
+
+
 def _normalize_research_briefs(value: Any) -> list[dict[str, str]]:
     if not isinstance(value, list):
         return []
@@ -278,6 +295,7 @@ def _build_missing_topic_tasks(state: dict[str, Any], missing_topics: list[str])
     research_briefs = _normalize_research_briefs(
         state.get("review_result", {}).get("research_briefs", [])
     )
+    default_search_budget = _default_search_budget(state)
     existing_ids = [
         int(item["id"])
         for item in existing_items
@@ -319,6 +337,10 @@ def _build_missing_topic_tasks(state: dict[str, Any], missing_topics: list[str])
                     "status": "pending",
                     "summary": None,
                     "sources_summary": None,
+                    "priority": _priority_to_rank(brief.get("priority")),
+                    "depends_on": [],
+                    "search_budget": default_search_budget,
+                    "search_type": "search",
                 }
             )
         if tasks:
@@ -339,6 +361,10 @@ def _build_missing_topic_tasks(state: dict[str, Any], missing_topics: list[str])
                 "status": "pending",
                 "summary": None,
                 "sources_summary": None,
+                "priority": 2,
+                "depends_on": [],
+                "search_budget": default_search_budget,
+                "search_type": "search",
             }
         )
     return tasks

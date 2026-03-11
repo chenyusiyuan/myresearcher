@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import operator
-from typing import Annotated, NotRequired, Optional, TypedDict
+from typing import Annotated, Any, NotRequired, Optional, TypedDict
 
 
 def _coerce_task_id(value: object) -> int | None:
@@ -45,6 +45,24 @@ def merge_todo_items(
     return merged
 
 
+_MAX_AGENT_MESSAGES = 64
+
+
+def merge_agent_messages(
+    current: list["AgentMessage"],
+    updates: list["AgentMessage"],
+) -> list["AgentMessage"]:
+    if not current:
+        merged = list(updates)
+    elif not updates:
+        merged = list(current)
+    else:
+        merged = [*current, *updates]
+    if len(merged) <= _MAX_AGENT_MESSAGES:
+        return merged
+    return merged[-_MAX_AGENT_MESSAGES:]
+
+
 class EvidenceItem(TypedDict):
     task_id: int
     url: str
@@ -70,6 +88,14 @@ class TodoItem(TypedDict):
     search_type: NotRequired[str]
 
 
+class AgentMessage(TypedDict):
+    from_agent: str
+    to_agent: str
+    type: str
+    payload: dict[str, Any]
+    timestamp: str
+
+
 class ResearchState(TypedDict):
     research_topic: str
     todo_items: Annotated[list[TodoItem], merge_todo_items]
@@ -83,3 +109,9 @@ class ResearchState(TypedDict):
     max_revisions: int
     agent_role: str
     config: dict
+
+
+class GlobalState(ResearchState):
+    messages: Annotated[list[AgentMessage], merge_agent_messages]
+    final_report: Optional[str]
+    status: str

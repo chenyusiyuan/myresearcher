@@ -170,6 +170,7 @@ def _resolve_embeddings(runtime_config: dict[str, Any]):
     elif provider == "ollama":
         embedding_kwargs["base_url"] = config.ollama_base_url
 
+    embedding_kwargs["timeout"] = config.llm_timeout_seconds
     return Memory(provider, model, **embedding_kwargs).get_embeddings()
 
 

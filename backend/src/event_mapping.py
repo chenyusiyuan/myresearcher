@@ -79,12 +79,97 @@ def _extract_first_dict(value: Any, key: str) -> dict[str, Any]:
     return {}
 
 
+def _extract_agent_messages(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, dict):
+        return []
+    messages = value.get("messages")
+    if not isinstance(messages, list):
+        return []
+    return [item for item in messages if isinstance(item, dict)]
+
+
+def _map_agent_message_status(message: dict[str, Any]) -> list[dict[str, Any]]:
+    message_type = str(message.get("type") or "").strip()
+    payload = message.get("payload") if isinstance(message.get("payload"), dict) else {}
+    mapped: list[dict[str, Any]] = []
+
+    if message_type == "task_assignment":
+        task_count = safe_int(payload.get("task_count"), 0)
+        mapped.append(
+            {
+                "type": "status",
+                "message": f"PlannerAgent 已向 ResearcherAgent 派发 {task_count or '若干'} 个任务。",
+            }
+        )
+    elif message_type == "evidence_delivery":
+        task_id = safe_int(payload.get("task_id"), 0)
+        title = str(payload.get("title") or "").strip()
+        mapped.append(
+            {
+                "type": "status",
+                "task_id": task_id or None,
+                "message": (
+                    f"ResearcherAgent 已提交任务 {task_id} 的研究结果。"
+                    if task_id
+                    else f"ResearcherAgent 已提交研究结果：{title or '未命名任务'}"
+                ),
+            }
+        )
+    elif message_type == "report_ready":
+        mapped.append({"type": "status", "message": "WriterAgent 已提交最新报告草稿。"})
+    elif message_type == "review_dispatch":
+        brief_topics = [
+            str(item.get("topic") or item.get("query") or "").strip()
+            for item in payload.get("research_briefs", [])
+            if isinstance(item, dict)
+            and str(item.get("topic") or item.get("query") or "").strip()
+        ]
+        missing_topics = [
+            str(item).strip()
+            for item in payload.get("missing_topics", [])
+            if str(item).strip()
+        ]
+        topics = brief_topics or missing_topics
+        mapped.append(
+            {
+                "type": "status",
+                "message": (
+                    f"ReviewerAgent 已向 ResearcherAgent 派发补研：{'、'.join(topics)}"
+                    if topics
+                    else "ReviewerAgent 已向 ResearcherAgent 派发补研任务。"
+                ),
+            }
+        )
+    elif message_type == "patch_order":
+        mapped.append({"type": "status", "message": "ReviewerAgent 已向 WriterAgent 下发定向改写计划。"})
+    elif message_type == "rewrite_order":
+        mapped.append({"type": "status", "message": "ReviewerAgent 要求 WriterAgent 继续重写报告。"})
+    elif message_type == "report_approved":
+        mapped.append({"type": "status", "message": "ReviewerAgent 已批准当前报告。"})
+    return mapped
+
+
 def map_langgraph_event(event: dict[str, Any]) -> list[dict[str, Any]]:
     event_type = str(event.get("event") or "").strip()
     node_name = _event_node_name(event)
     data = event.get("data")
     payload = data if isinstance(data, dict) else {}
     mapped_events: list[dict[str, Any]] = []
+
+    if event_type == "on_chain_start" and node_name == "supervisor":
+        return [{"type": "status", "message": "Supervisor 正在编排下一步 Agent..."}]
+
+    if event_type == "on_chain_end" and node_name in {
+        "planner_handoff",
+        "researcher_handoff",
+        "writer_handoff",
+        "reviewer_handoff",
+    }:
+        output = payload.get("output")
+        handoff_events: list[dict[str, Any]] = []
+        for message in _extract_agent_messages(output):
+            handoff_events.extend(_map_agent_message_status(message))
+        return handoff_events
 
     if event_type == "on_chain_start" and node_name == "planner":
         return [{"type": "status", "message": "规划研究任务..."}]
@@ -256,9 +341,6 @@ def map_langgraph_event(event: dict[str, Any]) -> list[dict[str, Any]]:
         else:
             mapped_events.append({"type": "status", "message": "Reviewer 要求继续重写报告。"})
         return mapped_events
-
-    if event_type == "on_chain_start" and node_name == "research_more":
-        return [{"type": "status", "message": "Reviewer 已提出补研主题，正在分派补充任务..."}]
 
     if event_type == "on_chain_end" and node_name == "LangGraph":
         return [{"type": "done"}]

@@ -25,11 +25,18 @@ def _sanitize_writer_prompt() -> str:
     return prompt.strip()
 
 
+def _coerce_task_id(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _build_task_context_block(state: dict[str, Any]) -> str:
     task_meta = {
-        int(item["id"]): item
+        task_id: item
         for item in state.get("todo_items", [])
-        if isinstance(item, dict) and isinstance(item.get("id"), int)
+        if isinstance(item, dict) and (task_id := _coerce_task_id(item.get("id"))) is not None
     }
 
     blocks: list[str] = []

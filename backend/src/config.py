@@ -121,6 +121,11 @@ class Configuration(BaseModel):
         title="LLM Base URL",
         description="Optional base URL when using custom OpenAI-compatible services",
     )
+    llm_timeout_seconds: float = Field(
+        default=30.0,
+        title="LLM Timeout Seconds",
+        description="HTTP timeout in seconds used for OpenAI-compatible LLM requests",
+    )
     llm_model_id: Optional[str] = Field(
         default="deepseek-chat",
         title="LLM Model ID",
@@ -149,6 +154,7 @@ class Configuration(BaseModel):
             "llm_api_key": os.getenv("LLM_API_KEY"),
             "llm_model_id": os.getenv("LLM_MODEL_ID"),
             "llm_base_url": os.getenv("LLM_BASE_URL"),
+            "llm_timeout_seconds": os.getenv("LLM_TIMEOUT_SECONDS"),
             "lmstudio_base_url": os.getenv("LMSTUDIO_BASE_URL"),
             "ollama_base_url": os.getenv("OLLAMA_BASE_URL"),
             "max_web_research_loops": os.getenv("MAX_WEB_RESEARCH_LOOPS"),
