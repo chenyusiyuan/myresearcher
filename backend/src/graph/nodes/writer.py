@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from langchain_core.callbacks.manager import adispatch_custom_event
 from prompts import report_writer_instructions
 from services.text_processing import strip_tool_calls
 from utils import strip_thinking_tokens, with_llm_retry
@@ -184,14 +185,31 @@ async def writer_node(state: dict[str, Any]) -> dict[str, Any]:
         {"role": "system", "content": _sanitize_writer_prompt()},
         {"role": "user", "content": _build_writer_user_prompt(state)},
     ]
-    response = await with_llm_retry(
-        lambda: client.chat.completions.create(
+
+    chunks: list[str] = []
+    try:
+        stream = await client.chat.completions.create(
             model=model,
             temperature=0,
             messages=messages,
+            stream=True,
         )
-    )
-    content = response.choices[0].message.content or ""
-    content = strip_tool_calls(strip_thinking_tokens(content)).strip()
+        async for chunk in stream:
+            token = chunk.choices[0].delta.content or ""
+            if token:
+                chunks.append(token)
+                await adispatch_custom_event("report_chunk", {"token": token})
+    except Exception:
+        if not chunks:
+            response = await with_llm_retry(
+                lambda: client.chat.completions.create(
+                    model=model,
+                    temperature=0,
+                    messages=messages,
+                )
+            )
+            chunks = [response.choices[0].message.content or ""]
+
+    content = strip_tool_calls(strip_thinking_tokens("".join(chunks))).strip()
     report = _ensure_references(content or "报告生成失败，请检查输入。", state.get("evidence_store", []))
     return {"structured_report": report}

@@ -29,6 +29,29 @@ npm install
 npm run dev
 ```
 
+后台启动前后端：
+
+```bash
+./scripts/start-all.sh
+./scripts/status-all.sh
+./scripts/stop-all.sh
+```
+
+也可以单独启动：
+
+```bash
+./scripts/start-backend.sh
+./scripts/start-frontend.sh
+```
+
+说明：
+
+- 后端日志：`logs/backend.log`
+- 前端日志：`logs/frontend.log`
+- PID 文件：`.run/backend.pid`、`.run/frontend.pid`
+- 前端后台脚本会监听 `0.0.0.0:5174`，适合远程开发场景下手动做端口转发
+- 后端后台脚本使用 `uvicorn` 非 `reload` 模式，适合长期驻留
+
 LangGraph Studio：
 
 ```bash
@@ -43,7 +66,7 @@ langgraph dev
 
 默认访问：
 
-- 前端：`http://localhost:5173`
+- 前端：`http://localhost:5174`
 - 后端：`http://localhost:8000`
 
 ## 默认模型

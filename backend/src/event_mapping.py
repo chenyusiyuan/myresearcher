@@ -208,4 +208,10 @@ def map_langgraph_event(event: dict[str, Any]) -> list[dict[str, Any]]:
     if event_type == "on_chain_end" and node_name == "LangGraph":
         return [{"type": "done"}]
 
+    if event_type == "on_custom_event" and event.get("name") == "report_chunk":
+        data = event.get("data") or {}
+        token = str(data.get("token") or "")
+        if token:
+            return [{"type": "report_chunk", "token": token}]
+
     return []

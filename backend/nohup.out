@@ -1,0 +1,21 @@
+/home/chenyusiyuan/myresearcher/backend/src/main.py:127: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Will watch for changes in these directories: ['/home/chenyusiyuan/myresearcher/backend']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [3282922] using WatchFiles
+INFO:     Started server process [3283074]
+INFO:     Waiting for application startup.
+2026-03-11 22:46:23.689 | INFO     | main:log_startup_configuration:138 - DeepResearch configuration loaded: provider=%s model=%s base_url=%s search_api=%s breadth=%s depth=%s concurrency=%s max_loops=%s max_revisions=%s smart_llm=%s strategic_llm=%s embedding_model=%s similarity_threshold=%s fetch_full_page=%s strip_thinking=%s api_key=%s
+[32m2026-03-11 22:46:23[0m | [1mINFO[0m | [36musing_function:log_startup_configuration[0m | [36mmain.py:138[0m | [1mDeepResearch configuration loaded: provider=%s model=%s base_url=%s search_api=%s breadth=%s depth=%s concurrency=%s max_loops=%s max_revisions=%s smart_llm=%s strategic_llm=%s embedding_model=%s similarity_threshold=%s fetch_full_page=%s strip_thinking=%s api_key=%s[0m
+[32m2026-03-11 22:46:23[0m | [1mINFO[0m | [36musing_function:log_startup_configuration[0m | [36mmain.py:138[0m | [1mDeepResearch configuration loaded: provider=%s model=%s base_url=%s search_api=%s breadth=%s depth=%s concurrency=%s max_loops=%s max_revisions=%s smart_llm=%s strategic_llm=%s embedding_model=%s similarity_threshold=%s fetch_full_page=%s strip_thinking=%s api_key=%s[0m
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [3283074]
+INFO:     Stopping reloader process [3282922]

@@ -1,0 +1,855 @@
+INFO:     Started server process [3379345]
+INFO:     Waiting for application startup.
+2026-03-11 23:43:21.312 | INFO     | main:log_startup_configuration:138 - DeepResearch configuration loaded: provider=%s model=%s base_url=%s search_api=%s breadth=%s depth=%s concurrency=%s max_loops=%s max_revisions=%s smart_llm=%s strategic_llm=%s embedding_model=%s similarity_threshold=%s fetch_full_page=%s strip_thinking=%s api_key=%s
+[32m2026-03-11 23:43:21[0m | [1mINFO[0m | [36musing_function:log_startup_configuration[0m | [36mmain.py:138[0m | [1mDeepResearch configuration loaded: provider=%s model=%s base_url=%s search_api=%s breadth=%s depth=%s concurrency=%s max_loops=%s max_revisions=%s smart_llm=%s strategic_llm=%s embedding_model=%s similarity_threshold=%s fetch_full_page=%s strip_thinking=%s api_key=%s[0m
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:38932 - "OPTIONS /research/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38932 - "POST /research/stream HTTP/1.1" 200 OK
+2026-03-11 23:43:36.823 | ERROR    | main:event_iterator:200 - Streaming research failed
+Traceback (most recent call last):
+
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
+    resp = await self._pool.handle_async_request(req)
+                 │    │     │                    └ <Request [b'POST']>
+                 │    │     └ <function AsyncConnectionPool.handle_async_request at 0x7fcc7b816950>
+                 │    └ <AsyncHTTPProxy [Requests: 0 active, 0 queued | Connections: 0 active, 0 idle]>
+                 └ <httpx.AsyncHTTPTransport object at 0x7fcc7b82ccd0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
+    raise exc from None
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
+    response = await connection.handle_async_request(
+                     │          └ <function AsyncTunnelHTTPConnection.handle_async_request at 0x7fcc7b817880>
+                     └ <AsyncTunnelHTTPConnection [CONNECTION FAILED]>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/http_proxy.py", line 288, in handle_async_request
+    connect_response = await self._connection.handle_async_request(
+                             │    │           └ <function AsyncHTTPConnection.handle_async_request at 0x7fcc7b815c60>
+                             │    └ <AsyncHTTPConnection [CONNECTION FAILED]>
+                             └ <AsyncTunnelHTTPConnection [CONNECTION FAILED]>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection.py", line 101, in handle_async_request
+    raise exc
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection.py", line 78, in handle_async_request
+    stream = await self._connect(request)
+                   │    │        └ <Request [b'CONNECT']>
+                   │    └ <function AsyncHTTPConnection._connect at 0x7fcc7b815cf0>
+                   └ <AsyncHTTPConnection [CONNECTION FAILED]>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection.py", line 124, in _connect
+    stream = await self._network_backend.connect_tcp(**kwargs)
+                   │    │                │             └ {'host': '127.0.0.1', 'port': 7897, 'local_address': None, 'timeout': 5.0, 'socket_options': None}
+                   │    │                └ <function AutoBackend.connect_tcp at 0x7fcc7b814160>
+                   │    └ <httpcore._backends.auto.AutoBackend object at 0x7fcc7b82ce50>
+                   └ <AsyncHTTPConnection [CONNECTION FAILED]>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_backends/auto.py", line 31, in connect_tcp
+    return await self._backend.connect_tcp(
+                 │    │        └ <function AnyIOBackend.connect_tcp at 0x7fcc7b835360>
+                 │    └ <httpcore.AnyIOBackend object at 0x7fcc78952fb0>
+                 └ <httpcore._backends.auto.AutoBackend object at 0x7fcc7b82ce50>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_backends/anyio.py", line 113, in connect_tcp
+    with map_exceptions(exc_map):
+         │              └ {<class 'TimeoutError'>: <class 'httpcore.ConnectTimeout'>, <class 'OSError'>: <class 'httpcore.ConnectError'>, <class 'anyio...
+         └ <function map_exceptions at 0x7fcc7b96ba30>
+  File "/home/chenyusiyuan/miniconda3/envs/llm/lib/python3.10/contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+    │    │   │     │    │      └ <traceback object at 0x7fcc789882c0>
+    │    │   │     │    └ OSError('All connection attempts failed')
+    │    │   │     └ <class 'OSError'>
+    │    │   └ <method 'throw' of 'generator' objects>
+    │    └ <generator object map_exceptions at 0x7fcc793f2f80>
+    └ <contextlib._GeneratorContextManager object at 0x7fcc78953070>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+          └ <class 'httpcore.ConnectError'>
+
+httpcore.ConnectError: All connection attempts failed
+
+
+The above exception was the direct cause of the following exception:
+
+
+Traceback (most recent call last):
+
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/openai/_base_client.py", line 1604, in request
+    response = await self._client.send(
+                     │    │       └ <function AsyncClient.send at 0x7fcc7c90c4c0>
+                     │    └ <openai._base_client.AsyncHttpxClientWrapper object at 0x7fcc7ba57d00>
+                     └ <openai.AsyncOpenAI object at 0x7fcc7ba571f0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_client.py", line 1629, in send
+    response = await self._send_handling_auth(
+                     │    └ <function AsyncClient._send_handling_auth at 0x7fcc7c90c550>
+                     └ <openai._base_client.AsyncHttpxClientWrapper object at 0x7fcc7ba57d00>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    response = await self._send_handling_redirects(
+                     │    └ <function AsyncClient._send_handling_redirects at 0x7fcc7c90c5e0>
+                     └ <openai._base_client.AsyncHttpxClientWrapper object at 0x7fcc7ba57d00>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    response = await self._send_single_request(request)
+                     │    │                    └ <Request('POST', 'https://api.deepseek.com/chat/completions')>
+                     │    └ <function AsyncClient._send_single_request at 0x7fcc7c90c670>
+                     └ <openai._base_client.AsyncHttpxClientWrapper object at 0x7fcc7ba57d00>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    response = await transport.handle_async_request(request)
+                     │         │                    └ <Request('POST', 'https://api.deepseek.com/chat/completions')>
+                     │         └ <function AsyncHTTPTransport.handle_async_request at 0x7fcc7c8fd870>
+                     └ <httpx.AsyncHTTPTransport object at 0x7fcc7b82ccd0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 393, in handle_async_request
+    with map_httpcore_exceptions():
+         └ <function map_httpcore_exceptions at 0x7fcc7c8fcf70>
+  File "/home/chenyusiyuan/miniconda3/envs/llm/lib/python3.10/contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+    │    │   │     │    │      └ <traceback object at 0x7fcc78988d00>
+    │    │   │     │    └ ConnectError(OSError('All connection attempts failed'))
+    │    │   │     └ <class 'httpcore.ConnectError'>
+    │    │   └ <method 'throw' of 'generator' objects>
+    │    └ <generator object map_httpcore_exceptions at 0x7fcc793f2a40>
+    └ <contextlib._GeneratorContextManager object at 0x7fcc78952f80>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+          │          └ 'All connection attempts failed'
+          └ <class 'httpx.ConnectError'>
+
+httpx.ConnectError: All connection attempts failed
+
+
+The above exception was the direct cause of the following exception:
+
+
+Traceback (most recent call last):
+
+  File "/home/chenyusiyuan/miniconda3/envs/llm/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+           │         │     └ {'__name__': '__main__', '__doc__': None, '__package__': 'uvicorn', '__loader__': <_frozen_importlib_external.SourceFileLoade...
+           │         └ <code object <module> at 0x7fcc7e657d60, file "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvi...
+           └ <function _run_code at 0x7fcc7f287520>
+  File "/home/chenyusiyuan/miniconda3/envs/llm/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+         │     └ {'__name__': '__main__', '__doc__': None, '__package__': 'uvicorn', '__loader__': <_frozen_importlib_external.SourceFileLoade...
+         └ <code object <module> at 0x7fcc7e657d60, file "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvi...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/__main__.py", line 4, in <module>
+    uvicorn.main()
+    │       └ <Command main>
+    └ <module 'uvicorn' from '/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/__init__.py'>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/click/core.py", line 1485, in __call__
+    return self.main(*args, **kwargs)
+           │    │     │       └ {}
+           │    │     └ ()
+           │    └ <function Command.main at 0x7fcc7e7dcee0>
+           └ <Command main>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/click/core.py", line 1406, in main
+    rv = self.invoke(ctx)
+         │    │      └ <click.core.Context object at 0x7fcc7f25fe50>
+         │    └ <function Command.invoke at 0x7fcc7e7dd000>
+         └ <Command main>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/click/core.py", line 1269, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           │   │      │    │           │   └ {'host': '0.0.0.0', 'port': 8000, 'app': 'main:app', 'uds': None, 'fd': None, 'reload': False, 'reload_dirs': (), 'reload_inc...
+           │   │      │    │           └ <click.core.Context object at 0x7fcc7f25fe50>
+           │   │      │    └ <function main at 0x7fcc7e401480>
+           │   │      └ <Command main>
+           │   └ <function Context.invoke at 0x7fcc7e7ddbd0>
+           └ <click.core.Context object at 0x7fcc7f25fe50>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/click/core.py", line 824, in invoke
+    return callback(*args, **kwargs)
+           │         │       └ {'host': '0.0.0.0', 'port': 8000, 'app': 'main:app', 'uds': None, 'fd': None, 'reload': False, 'reload_dirs': (), 'reload_inc...
+           │         └ ()
+           └ <function main at 0x7fcc7e401480>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/main.py", line 433, in main
+    run(
+    └ <function run at 0x7fcc7e4c7e20>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/main.py", line 606, in run
+    server.run()
+    │      └ <function Server.run at 0x7fcc7e6f8430>
+    └ <uvicorn.server.Server object at 0x7fcc7e3fcb50>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/server.py", line 75, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+           │           │    │             │                      │    │      └ <function Config.get_loop_factory at 0x7fcc7e64b910>
+           │           │    │             │                      │    └ <uvicorn.config.Config object at 0x7fcc7e3cbf70>
+           │           │    │             │                      └ <uvicorn.server.Server object at 0x7fcc7e3fcb50>
+           │           │    │             └ None
+           │           │    └ <function Server.serve at 0x7fcc7e6f84c0>
+           │           └ <uvicorn.server.Server object at 0x7fcc7e3fcb50>
+           └ <function asyncio_run at 0x7fcc7e7b63b0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/_compat.py", line 60, in asyncio_run
+    return loop.run_until_complete(main)
+           │    │                  └ <coroutine object Server.serve at 0x7fcc7e3d5380>
+           │    └ <cyfunction Loop.run_until_complete at 0x7fcc7e4c34c0>
+           └ <uvloop.Loop running=True closed=False debug=False>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/starlette/responses.py", line 273, in wrap
+    await func()
+          └ functools.partial(<bound method StreamingResponse.stream_response of <starlette.responses.StreamingResponse object at 0x7fcc7...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/starlette/responses.py", line 253, in stream_response
+    async for chunk in self.body_iterator:
+              │        │    └ <async_generator object create_app.<locals>.stream_research.<locals>.event_iterator at 0x7fcc7b9cb7c0>
+              │        └ <starlette.responses.StreamingResponse object at 0x7fcc7b916980>
+              └ b'data: {"type": "status", "message": "\xe8\xa7\x84\xe5\x88\x92\xe7\xa0\x94\xe7\xa9\xb6\xe4\xbb\xbb\xe5\x8a\xa1..."}\n\n'
+
+> File "/home/chenyusiyuan/myresearcher/backend/src/main.py", line 194, in event_iterator
+    async for event in graph.astream_events(initial_state, version="v2"):
+              │        │     │              └ {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structured_report': '', 'visited_urls': set(), 'ev...
+              │        │     └ <function Runnable.astream_events at 0x7fcc7c531bd0>
+              │        └ <langgraph.graph.state.CompiledStateGraph object at 0x7fcc7ba56c20>
+              └ {'event': 'on_chain_start', 'data': {'input': {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'stru...
+
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/runnables/base.py", line 1516, in astream_events
+    async for event in event_stream:
+              │        └ <async_generator object _astream_events_implementation_v2 at 0x7fcc7b938140>
+              └ {'event': 'on_chain_start', 'data': {'input': {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'stru...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/tracers/event_stream.py", line 1100, in _astream_events_implementation_v2
+    await task
+          └ <Task finished name='Task-6' coro=<_astream_events_implementation_v2.<locals>.consume_astream() done, defined at /home/chenyu...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/tracers/event_stream.py", line 1055, in consume_astream
+    async for _ in event_streamer.tap_output_aiter(run_id, stream):
+                   │              │                │       └ <async_generator object Pregel.astream at 0x7fcc7b9381c0>
+                   │              │                └ UUID('019cdd91-51ee-7701-826f-562c02b4b8d9')
+                   │              └ <function _AstreamEventsCallbackHandler.tap_output_aiter at 0x7fcc7c71f910>
+                   └ <langchain_core.tracers.event_stream._AstreamEventsCallbackHandler object at 0x7fcc7b916e00>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/tracers/event_stream.py", line 199, in tap_output_aiter
+    first = await anext(output, sentinel)
+                        │       └ <object object at 0x7fcc7c38e180>
+                        └ <async_generator object Pregel.astream at 0x7fcc7b9381c0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/pregel/main.py", line 3109, in astream
+    async for _ in runner.atick(
+              │    │      └ <function PregelRunner.atick at 0x7fcc7c2d8dc0>
+              │    └ <langgraph.pregel._runner.PregelRunner object at 0x7fcc7ba57550>
+              └ None
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/pregel/_runner.py", line 304, in atick
+    await arun_with_retry(
+          └ <function arun_with_retry at 0x7fcc7c2d83a0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/pregel/_retry.py", line 158, in arun_with_retry
+    async for _ in task.proc.astream(task.input, config):
+                   │    │    │       │    │      └ {'callbacks': <langchain_core.callbacks.manager.AsyncCallbackManager object at 0x7fcc7ba55960>, 'recursion_limit': 25, 'confi...
+                   │    │    │       │    └ {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structured_report': '', 'visited_urls': set(), 'ev...
+                   │    │    │       └ PregelExecutableTask(name='planner', input={'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structu...
+                   │    │    └ <function RunnableSeq.astream at 0x7fcc7c409ab0>
+                   │    └ <langgraph._internal._runnable.RunnableSeq object at 0x7fcc7ba558d0>
+                   └ PregelExecutableTask(name='planner', input={'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structu...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/_internal/_runnable.py", line 871, in astream
+    output = await _consume_aiter(aiterator)
+                   │              └ <async_generator object _AstreamEventsCallbackHandler.tap_output_aiter at 0x7fcc7b939c40>
+                   └ <function _consume_aiter at 0x7fcc7c409b40>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/_internal/_runnable.py", line 904, in _consume_aiter
+    async for chunk in it:
+                       └ <async_generator object _AstreamEventsCallbackHandler.tap_output_aiter at 0x7fcc7b939c40>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/tracers/event_stream.py", line 199, in tap_output_aiter
+    first = await anext(output, sentinel)
+                        │       └ <object object at 0x7fcc7c38e100>
+                        └ <async_generator object Runnable.atransform at 0x7fcc7b939b40>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/runnables/base.py", line 1589, in atransform
+    async for ichunk in input:
+                        └ <async_generator object Runnable.atransform at 0x7fcc7b939ac0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/runnables/base.py", line 1589, in atransform
+    async for ichunk in input:
+                        └ <async_generator object Runnable.astream at 0x7fcc7b9399c0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/runnables/base.py", line 1170, in astream
+    yield await self.ainvoke(input, config, **kwargs)
+                │    │       │      │         └ {}
+                │    │       │      └ {'callbacks': <langchain_core.callbacks.manager.AsyncCallbackManager object at 0x7fcc7ba55f90>, 'recursion_limit': 25, 'confi...
+                │    │       └ {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structured_report': '', 'visited_urls': set(), 'ev...
+                │    └ <function RunnableCallable.ainvoke at 0x7fcc7c409510>
+                └ planner(tags=None, recurse=True, explode_args=False, func_accepts={})
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/_internal/_runnable.py", line 473, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+                │    │      │       └ {}
+                │    │      └ ({'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structured_report': '', 'visited_urls': set(), 'e...
+                │    └ <function planner_node at 0x7fcc7bc9bc70>
+                └ planner(tags=None, recurse=True, explode_args=False, func_accepts={})
+
+  File "/home/chenyusiyuan/myresearcher/backend/src/graph/nodes/planner.py", line 206, in planner_node
+    response_text = await _request_planner_response(research_topic, runtime_config)
+                          │                         │               └ {'deep_research_breadth': 3, 'deep_research_depth': 2, 'deep_research_concurrency': 4, 'max_web_research_loops': 3, 'similari...
+                          │                         └ '调研一下rag'
+                          └ <function _request_planner_response at 0x7fcc7bc9b9a0>
+
+  File "/home/chenyusiyuan/myresearcher/backend/src/graph/nodes/planner.py", line 121, in _request_planner_response
+    response = await with_llm_retry(
+                     └ <function with_llm_retry at 0x7fcc7bc82b00>
+
+  File "/home/chenyusiyuan/myresearcher/backend/src/utils.py", line 35, in with_llm_retry
+    return await fn()
+                 └ <function _request_planner_response.<locals>.<lambda> at 0x7fcc7b969900>
+
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/openai/resources/chat/completions/completions.py", line 2714, in create
+    return await self._post(
+                 │    └ <bound method AsyncAPIClient.post of <openai.AsyncOpenAI object at 0x7fcc7ba571f0>>
+                 └ <openai.resources.chat.completions.completions.AsyncCompletions object at 0x7fcc7ba57100>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/openai/_base_client.py", line 1884, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+                 │    │       │        │            │                  └ openai.AsyncStream[openai.types.chat.chat_completion_chunk.ChatCompletionChunk]
+                 │    │       │        │            └ False
+                 │    │       │        └ FinalRequestOptions(method='post', url='/chat/completions', params={}, headers=NOT_GIVEN, max_retries=NOT_GIVEN, timeout=NOT_...
+                 │    │       └ <class 'openai.types.chat.chat_completion.ChatCompletion'>
+                 │    └ <function AsyncAPIClient.request at 0x7fcc7bd12cb0>
+                 └ <openai.AsyncOpenAI object at 0x7fcc7ba571f0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/openai/_base_client.py", line 1636, in request
+    raise APIConnectionError(request=request) from err
+          │                          └ <Request('POST', 'https://api.deepseek.com/chat/completions')>
+          └ <class 'openai.APIConnectionError'>
+
+openai.APIConnectionError: Connection error.
+[32m2026-03-11 23:43:36[0m | [31m[1mERROR[0m | [36musing_function:event_iterator[0m | [36mmain.py:200[0m | [31m[1mStreaming research failed[0m
+[33m[1mTraceback (most recent call last):[0m
+
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
+    resp = await self._pool.handle_async_request(req)
+                 │    │     │                    └ <Request [b'POST']>
+                 │    │     └ <function AsyncConnectionPool.handle_async_request at 0x7fcc7b816950>
+                 │    └ <AsyncHTTPProxy [Requests: 0 active, 0 queued | Connections: 0 active, 0 idle]>
+                 └ <httpx.AsyncHTTPTransport object at 0x7fcc7b82ccd0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
+    raise exc from None
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
+    response = await connection.handle_async_request(
+                     │          └ <function AsyncTunnelHTTPConnection.handle_async_request at 0x7fcc7b817880>
+                     └ <AsyncTunnelHTTPConnection [CONNECTION FAILED]>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/http_proxy.py", line 288, in handle_async_request
+    connect_response = await self._connection.handle_async_request(
+                             │    │           └ <function AsyncHTTPConnection.handle_async_request at 0x7fcc7b815c60>
+                             │    └ <AsyncHTTPConnection [CONNECTION FAILED]>
+                             └ <AsyncTunnelHTTPConnection [CONNECTION FAILED]>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection.py", line 101, in handle_async_request
+    raise exc
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection.py", line 78, in handle_async_request
+    stream = await self._connect(request)
+                   │    │        └ <Request [b'CONNECT']>
+                   │    └ <function AsyncHTTPConnection._connect at 0x7fcc7b815cf0>
+                   └ <AsyncHTTPConnection [CONNECTION FAILED]>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection.py", line 124, in _connect
+    stream = await self._network_backend.connect_tcp(**kwargs)
+                   │    │                │             └ {'host': '127.0.0.1', 'port': 7897, 'local_address': None, 'timeout': 5.0, 'socket_options': None}
+                   │    │                └ <function AutoBackend.connect_tcp at 0x7fcc7b814160>
+                   │    └ <httpcore._backends.auto.AutoBackend object at 0x7fcc7b82ce50>
+                   └ <AsyncHTTPConnection [CONNECTION FAILED]>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_backends/auto.py", line 31, in connect_tcp
+    return await self._backend.connect_tcp(
+                 │    │        └ <function AnyIOBackend.connect_tcp at 0x7fcc7b835360>
+                 │    └ <httpcore.AnyIOBackend object at 0x7fcc78952fb0>
+                 └ <httpcore._backends.auto.AutoBackend object at 0x7fcc7b82ce50>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_backends/anyio.py", line 113, in connect_tcp
+    with map_exceptions(exc_map):
+         │              └ {<class 'TimeoutError'>: <class 'httpcore.ConnectTimeout'>, <class 'OSError'>: <class 'httpcore.ConnectError'>, <class 'anyio...
+         └ <function map_exceptions at 0x7fcc7b96ba30>
+  File "/home/chenyusiyuan/miniconda3/envs/llm/lib/python3.10/contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+    │    │   │     │    │      └ <traceback object at 0x7fcc789882c0>
+    │    │   │     │    └ OSError('All connection attempts failed')
+    │    │   │     └ <class 'OSError'>
+    │    │   └ <method 'throw' of 'generator' objects>
+    │    └ <generator object map_exceptions at 0x7fcc793f2f80>
+    └ <contextlib._GeneratorContextManager object at 0x7fcc78953070>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+          └ <class 'httpcore.ConnectError'>
+
+[31m[1mhttpcore.ConnectError[0m:[1m All connection attempts failed[0m
+
+
+[1mThe above exception was the direct cause of the following exception:[0m
+
+
+[33m[1mTraceback (most recent call last):[0m
+
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/openai/_base_client.py", line 1604, in request
+    response = await self._client.send(
+                     │    │       └ <function AsyncClient.send at 0x7fcc7c90c4c0>
+                     │    └ <openai._base_client.AsyncHttpxClientWrapper object at 0x7fcc7ba57d00>
+                     └ <openai.AsyncOpenAI object at 0x7fcc7ba571f0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_client.py", line 1629, in send
+    response = await self._send_handling_auth(
+                     │    └ <function AsyncClient._send_handling_auth at 0x7fcc7c90c550>
+                     └ <openai._base_client.AsyncHttpxClientWrapper object at 0x7fcc7ba57d00>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    response = await self._send_handling_redirects(
+                     │    └ <function AsyncClient._send_handling_redirects at 0x7fcc7c90c5e0>
+                     └ <openai._base_client.AsyncHttpxClientWrapper object at 0x7fcc7ba57d00>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    response = await self._send_single_request(request)
+                     │    │                    └ <Request('POST', 'https://api.deepseek.com/chat/completions')>
+                     │    └ <function AsyncClient._send_single_request at 0x7fcc7c90c670>
+                     └ <openai._base_client.AsyncHttpxClientWrapper object at 0x7fcc7ba57d00>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    response = await transport.handle_async_request(request)
+                     │         │                    └ <Request('POST', 'https://api.deepseek.com/chat/completions')>
+                     │         └ <function AsyncHTTPTransport.handle_async_request at 0x7fcc7c8fd870>
+                     └ <httpx.AsyncHTTPTransport object at 0x7fcc7b82ccd0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 393, in handle_async_request
+    with map_httpcore_exceptions():
+         └ <function map_httpcore_exceptions at 0x7fcc7c8fcf70>
+  File "/home/chenyusiyuan/miniconda3/envs/llm/lib/python3.10/contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+    │    │   │     │    │      └ <traceback object at 0x7fcc78988d00>
+    │    │   │     │    └ ConnectError(OSError('All connection attempts failed'))
+    │    │   │     └ <class 'httpcore.ConnectError'>
+    │    │   └ <method 'throw' of 'generator' objects>
+    │    └ <generator object map_httpcore_exceptions at 0x7fcc793f2a40>
+    └ <contextlib._GeneratorContextManager object at 0x7fcc78952f80>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+          │          └ 'All connection attempts failed'
+          └ <class 'httpx.ConnectError'>
+
+[31m[1mhttpx.ConnectError[0m:[1m All connection attempts failed[0m
+
+
+[1mThe above exception was the direct cause of the following exception:[0m
+
+
+[33m[1mTraceback (most recent call last):[0m
+
+  File "/home/chenyusiyuan/miniconda3/envs/llm/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+           │         │     └ {'__name__': '__main__', '__doc__': None, '__package__': 'uvicorn', '__loader__': <_frozen_importlib_external.SourceFileLoade...
+           │         └ <code object <module> at 0x7fcc7e657d60, file "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvi...
+           └ <function _run_code at 0x7fcc7f287520>
+  File "/home/chenyusiyuan/miniconda3/envs/llm/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+         │     └ {'__name__': '__main__', '__doc__': None, '__package__': 'uvicorn', '__loader__': <_frozen_importlib_external.SourceFileLoade...
+         └ <code object <module> at 0x7fcc7e657d60, file "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvi...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/__main__.py", line 4, in <module>
+    uvicorn.main()
+    │       └ <Command main>
+    └ <module 'uvicorn' from '/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/__init__.py'>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/click/core.py", line 1485, in __call__
+    return self.main(*args, **kwargs)
+           │    │     │       └ {}
+           │    │     └ ()
+           │    └ <function Command.main at 0x7fcc7e7dcee0>
+           └ <Command main>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/click/core.py", line 1406, in main
+    rv = self.invoke(ctx)
+         │    │      └ <click.core.Context object at 0x7fcc7f25fe50>
+         │    └ <function Command.invoke at 0x7fcc7e7dd000>
+         └ <Command main>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/click/core.py", line 1269, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           │   │      │    │           │   └ {'host': '0.0.0.0', 'port': 8000, 'app': 'main:app', 'uds': None, 'fd': None, 'reload': False, 'reload_dirs': (), 'reload_inc...
+           │   │      │    │           └ <click.core.Context object at 0x7fcc7f25fe50>
+           │   │      │    └ <function main at 0x7fcc7e401480>
+           │   │      └ <Command main>
+           │   └ <function Context.invoke at 0x7fcc7e7ddbd0>
+           └ <click.core.Context object at 0x7fcc7f25fe50>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/click/core.py", line 824, in invoke
+    return callback(*args, **kwargs)
+           │         │       └ {'host': '0.0.0.0', 'port': 8000, 'app': 'main:app', 'uds': None, 'fd': None, 'reload': False, 'reload_dirs': (), 'reload_inc...
+           │         └ ()
+           └ <function main at 0x7fcc7e401480>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/main.py", line 433, in main
+    run(
+    └ <function run at 0x7fcc7e4c7e20>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/main.py", line 606, in run
+    server.run()
+    │      └ <function Server.run at 0x7fcc7e6f8430>
+    └ <uvicorn.server.Server object at 0x7fcc7e3fcb50>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/server.py", line 75, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+           │           │    │             │                      │    │      └ <function Config.get_loop_factory at 0x7fcc7e64b910>
+           │           │    │             │                      │    └ <uvicorn.config.Config object at 0x7fcc7e3cbf70>
+           │           │    │             │                      └ <uvicorn.server.Server object at 0x7fcc7e3fcb50>
+           │           │    │             └ None
+           │           │    └ <function Server.serve at 0x7fcc7e6f84c0>
+           │           └ <uvicorn.server.Server object at 0x7fcc7e3fcb50>
+           └ <function asyncio_run at 0x7fcc7e7b63b0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/_compat.py", line 60, in asyncio_run
+    return loop.run_until_complete(main)
+           │    │                  └ <coroutine object Server.serve at 0x7fcc7e3d5380>
+           │    └ <cyfunction Loop.run_until_complete at 0x7fcc7e4c34c0>
+           └ <uvloop.Loop running=True closed=False debug=False>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/starlette/responses.py", line 273, in wrap
+    await func()
+          └ functools.partial(<bound method StreamingResponse.stream_response of <starlette.responses.StreamingResponse object at 0x7fcc7...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/starlette/responses.py", line 253, in stream_response
+    async for chunk in self.body_iterator:
+              │        │    └ <async_generator object create_app.<locals>.stream_research.<locals>.event_iterator at 0x7fcc7b9cb7c0>
+              │        └ <starlette.responses.StreamingResponse object at 0x7fcc7b916980>
+              └ b'data: {"type": "status", "message": "\xe8\xa7\x84\xe5\x88\x92\xe7\xa0\x94\xe7\xa9\xb6\xe4\xbb\xbb\xe5\x8a\xa1..."}\n\n'
+
+> File "[32m/home/chenyusiyuan/myresearcher/backend/src/[0m[32m[1mmain.py[0m", line [33m194[0m, in [35mevent_iterator[0m
+    [35m[1masync[0m [35m[1mfor[0m [1mevent[0m [35m[1min[0m [1mgraph[0m[35m[1m.[0m[1mastream_events[0m[1m([0m[1minitial_state[0m[1m,[0m [1mversion[0m[35m[1m=[0m[36m"v2"[0m[1m)[0m[1m:[0m
+    [36m          │        │     │              └ [0m[36m[1m{'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structured_report': '', 'visited_urls': set(), 'ev...[0m
+    [36m          │        │     └ [0m[36m[1m<function Runnable.astream_events at 0x7fcc7c531bd0>[0m
+    [36m          │        └ [0m[36m[1m<langgraph.graph.state.CompiledStateGraph object at 0x7fcc7ba56c20>[0m
+    [36m          └ [0m[36m[1m{'event': 'on_chain_start', 'data': {'input': {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'stru...[0m
+
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/runnables/base.py", line 1516, in astream_events
+    async for event in event_stream:
+              │        └ <async_generator object _astream_events_implementation_v2 at 0x7fcc7b938140>
+              └ {'event': 'on_chain_start', 'data': {'input': {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'stru...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/tracers/event_stream.py", line 1100, in _astream_events_implementation_v2
+    await task
+          └ <Task finished name='Task-6' coro=<_astream_events_implementation_v2.<locals>.consume_astream() done, defined at /home/chenyu...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/tracers/event_stream.py", line 1055, in consume_astream
+    async for _ in event_streamer.tap_output_aiter(run_id, stream):
+                   │              │                │       └ <async_generator object Pregel.astream at 0x7fcc7b9381c0>
+                   │              │                └ UUID('019cdd91-51ee-7701-826f-562c02b4b8d9')
+                   │              └ <function _AstreamEventsCallbackHandler.tap_output_aiter at 0x7fcc7c71f910>
+                   └ <langchain_core.tracers.event_stream._AstreamEventsCallbackHandler object at 0x7fcc7b916e00>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/tracers/event_stream.py", line 199, in tap_output_aiter
+    first = await anext(output, sentinel)
+                        │       └ <object object at 0x7fcc7c38e180>
+                        └ <async_generator object Pregel.astream at 0x7fcc7b9381c0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/pregel/main.py", line 3109, in astream
+    async for _ in runner.atick(
+              │    │      └ <function PregelRunner.atick at 0x7fcc7c2d8dc0>
+              │    └ <langgraph.pregel._runner.PregelRunner object at 0x7fcc7ba57550>
+              └ None
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/pregel/_runner.py", line 304, in atick
+    await arun_with_retry(
+          └ <function arun_with_retry at 0x7fcc7c2d83a0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/pregel/_retry.py", line 158, in arun_with_retry
+    async for _ in task.proc.astream(task.input, config):
+                   │    │    │       │    │      └ {'callbacks': <langchain_core.callbacks.manager.AsyncCallbackManager object at 0x7fcc7ba55960>, 'recursion_limit': 25, 'confi...
+                   │    │    │       │    └ {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structured_report': '', 'visited_urls': set(), 'ev...
+                   │    │    │       └ PregelExecutableTask(name='planner', input={'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structu...
+                   │    │    └ <function RunnableSeq.astream at 0x7fcc7c409ab0>
+                   │    └ <langgraph._internal._runnable.RunnableSeq object at 0x7fcc7ba558d0>
+                   └ PregelExecutableTask(name='planner', input={'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structu...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/_internal/_runnable.py", line 871, in astream
+    output = await _consume_aiter(aiterator)
+                   │              └ <async_generator object _AstreamEventsCallbackHandler.tap_output_aiter at 0x7fcc7b939c40>
+                   └ <function _consume_aiter at 0x7fcc7c409b40>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/_internal/_runnable.py", line 904, in _consume_aiter
+    async for chunk in it:
+                       └ <async_generator object _AstreamEventsCallbackHandler.tap_output_aiter at 0x7fcc7b939c40>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/tracers/event_stream.py", line 199, in tap_output_aiter
+    first = await anext(output, sentinel)
+                        │       └ <object object at 0x7fcc7c38e100>
+                        └ <async_generator object Runnable.atransform at 0x7fcc7b939b40>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/runnables/base.py", line 1589, in atransform
+    async for ichunk in input:
+                        └ <async_generator object Runnable.atransform at 0x7fcc7b939ac0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/runnables/base.py", line 1589, in atransform
+    async for ichunk in input:
+                        └ <async_generator object Runnable.astream at 0x7fcc7b9399c0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/runnables/base.py", line 1170, in astream
+    yield await self.ainvoke(input, config, **kwargs)
+                │    │       │      │         └ {}
+                │    │       │      └ {'callbacks': <langchain_core.callbacks.manager.AsyncCallbackManager object at 0x7fcc7ba55f90>, 'recursion_limit': 25, 'confi...
+                │    │       └ {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structured_report': '', 'visited_urls': set(), 'ev...
+                │    └ <function RunnableCallable.ainvoke at 0x7fcc7c409510>
+                └ planner(tags=None, recurse=True, explode_args=False, func_accepts={})
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/_internal/_runnable.py", line 473, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+                │    │      │       └ {}
+                │    │      └ ({'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structured_report': '', 'visited_urls': set(), 'e...
+                │    └ <function planner_node at 0x7fcc7bc9bc70>
+                └ planner(tags=None, recurse=True, explode_args=False, func_accepts={})
+
+  File "[32m/home/chenyusiyuan/myresearcher/backend/src/graph/nodes/[0m[32m[1mplanner.py[0m", line [33m206[0m, in [35mplanner_node[0m
+    [1mresponse_text[0m [35m[1m=[0m [35m[1mawait[0m [1m_request_planner_response[0m[1m([0m[1mresearch_topic[0m[1m,[0m [1mruntime_config[0m[1m)[0m
+    [36m                      │                         │               └ [0m[36m[1m{'deep_research_breadth': 3, 'deep_research_depth': 2, 'deep_research_concurrency': 4, 'max_web_research_loops': 3, 'similari...[0m
+    [36m                      │                         └ [0m[36m[1m'调研一下rag'[0m
+    [36m                      └ [0m[36m[1m<function _request_planner_response at 0x7fcc7bc9b9a0>[0m
+
+  File "[32m/home/chenyusiyuan/myresearcher/backend/src/graph/nodes/[0m[32m[1mplanner.py[0m", line [33m121[0m, in [35m_request_planner_response[0m
+    [1mresponse[0m [35m[1m=[0m [35m[1mawait[0m [1mwith_llm_retry[0m[1m([0m
+    [36m                 └ [0m[36m[1m<function with_llm_retry at 0x7fcc7bc82b00>[0m
+
+  File "[32m/home/chenyusiyuan/myresearcher/backend/src/[0m[32m[1mutils.py[0m", line [33m35[0m, in [35mwith_llm_retry[0m
+    [35m[1mreturn[0m [35m[1mawait[0m [1mfn[0m[1m([0m[1m)[0m
+    [36m             └ [0m[36m[1m<function _request_planner_response.<locals>.<lambda> at 0x7fcc7b969900>[0m
+
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/openai/resources/chat/completions/completions.py", line 2714, in create
+    return await self._post(
+                 │    └ <bound method AsyncAPIClient.post of <openai.AsyncOpenAI object at 0x7fcc7ba571f0>>
+                 └ <openai.resources.chat.completions.completions.AsyncCompletions object at 0x7fcc7ba57100>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/openai/_base_client.py", line 1884, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+                 │    │       │        │            │                  └ openai.AsyncStream[openai.types.chat.chat_completion_chunk.ChatCompletionChunk]
+                 │    │       │        │            └ False
+                 │    │       │        └ FinalRequestOptions(method='post', url='/chat/completions', params={}, headers=NOT_GIVEN, max_retries=NOT_GIVEN, timeout=NOT_...
+                 │    │       └ <class 'openai.types.chat.chat_completion.ChatCompletion'>
+                 │    └ <function AsyncAPIClient.request at 0x7fcc7bd12cb0>
+                 └ <openai.AsyncOpenAI object at 0x7fcc7ba571f0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/openai/_base_client.py", line 1636, in request
+    raise APIConnectionError(request=request) from err
+          │                          └ <Request('POST', 'https://api.deepseek.com/chat/completions')>
+          └ <class 'openai.APIConnectionError'>
+
+[31m[1mopenai.APIConnectionError[0m:[1m Connection error.[0m
+[32m2026-03-11 23:43:36[0m | [31m[1mERROR[0m | [36musing_function:event_iterator[0m | [36mmain.py:200[0m | [31m[1mStreaming research failed[0m
+[33m[1mTraceback (most recent call last):[0m
+
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
+    resp = await self._pool.handle_async_request(req)
+                 │    │     │                    └ <Request [b'POST']>
+                 │    │     └ <function AsyncConnectionPool.handle_async_request at 0x7fcc7b816950>
+                 │    └ <AsyncHTTPProxy [Requests: 0 active, 0 queued | Connections: 0 active, 0 idle]>
+                 └ <httpx.AsyncHTTPTransport object at 0x7fcc7b82ccd0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
+    raise exc from None
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
+    response = await connection.handle_async_request(
+                     │          └ <function AsyncTunnelHTTPConnection.handle_async_request at 0x7fcc7b817880>
+                     └ <AsyncTunnelHTTPConnection [CONNECTION FAILED]>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/http_proxy.py", line 288, in handle_async_request
+    connect_response = await self._connection.handle_async_request(
+                             │    │           └ <function AsyncHTTPConnection.handle_async_request at 0x7fcc7b815c60>
+                             │    └ <AsyncHTTPConnection [CONNECTION FAILED]>
+                             └ <AsyncTunnelHTTPConnection [CONNECTION FAILED]>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection.py", line 101, in handle_async_request
+    raise exc
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection.py", line 78, in handle_async_request
+    stream = await self._connect(request)
+                   │    │        └ <Request [b'CONNECT']>
+                   │    └ <function AsyncHTTPConnection._connect at 0x7fcc7b815cf0>
+                   └ <AsyncHTTPConnection [CONNECTION FAILED]>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_async/connection.py", line 124, in _connect
+    stream = await self._network_backend.connect_tcp(**kwargs)
+                   │    │                │             └ {'host': '127.0.0.1', 'port': 7897, 'local_address': None, 'timeout': 5.0, 'socket_options': None}
+                   │    │                └ <function AutoBackend.connect_tcp at 0x7fcc7b814160>
+                   │    └ <httpcore._backends.auto.AutoBackend object at 0x7fcc7b82ce50>
+                   └ <AsyncHTTPConnection [CONNECTION FAILED]>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_backends/auto.py", line 31, in connect_tcp
+    return await self._backend.connect_tcp(
+                 │    │        └ <function AnyIOBackend.connect_tcp at 0x7fcc7b835360>
+                 │    └ <httpcore.AnyIOBackend object at 0x7fcc78952fb0>
+                 └ <httpcore._backends.auto.AutoBackend object at 0x7fcc7b82ce50>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_backends/anyio.py", line 113, in connect_tcp
+    with map_exceptions(exc_map):
+         │              └ {<class 'TimeoutError'>: <class 'httpcore.ConnectTimeout'>, <class 'OSError'>: <class 'httpcore.ConnectError'>, <class 'anyio...
+         └ <function map_exceptions at 0x7fcc7b96ba30>
+  File "/home/chenyusiyuan/miniconda3/envs/llm/lib/python3.10/contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+    │    │   │     │    │      └ <traceback object at 0x7fcc789882c0>
+    │    │   │     │    └ OSError('All connection attempts failed')
+    │    │   │     └ <class 'OSError'>
+    │    │   └ <method 'throw' of 'generator' objects>
+    │    └ <generator object map_exceptions at 0x7fcc793f2f80>
+    └ <contextlib._GeneratorContextManager object at 0x7fcc78953070>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+          └ <class 'httpcore.ConnectError'>
+
+[31m[1mhttpcore.ConnectError[0m:[1m All connection attempts failed[0m
+
+
+[1mThe above exception was the direct cause of the following exception:[0m
+
+
+[33m[1mTraceback (most recent call last):[0m
+
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/openai/_base_client.py", line 1604, in request
+    response = await self._client.send(
+                     │    │       └ <function AsyncClient.send at 0x7fcc7c90c4c0>
+                     │    └ <openai._base_client.AsyncHttpxClientWrapper object at 0x7fcc7ba57d00>
+                     └ <openai.AsyncOpenAI object at 0x7fcc7ba571f0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_client.py", line 1629, in send
+    response = await self._send_handling_auth(
+                     │    └ <function AsyncClient._send_handling_auth at 0x7fcc7c90c550>
+                     └ <openai._base_client.AsyncHttpxClientWrapper object at 0x7fcc7ba57d00>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    response = await self._send_handling_redirects(
+                     │    └ <function AsyncClient._send_handling_redirects at 0x7fcc7c90c5e0>
+                     └ <openai._base_client.AsyncHttpxClientWrapper object at 0x7fcc7ba57d00>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    response = await self._send_single_request(request)
+                     │    │                    └ <Request('POST', 'https://api.deepseek.com/chat/completions')>
+                     │    └ <function AsyncClient._send_single_request at 0x7fcc7c90c670>
+                     └ <openai._base_client.AsyncHttpxClientWrapper object at 0x7fcc7ba57d00>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    response = await transport.handle_async_request(request)
+                     │         │                    └ <Request('POST', 'https://api.deepseek.com/chat/completions')>
+                     │         └ <function AsyncHTTPTransport.handle_async_request at 0x7fcc7c8fd870>
+                     └ <httpx.AsyncHTTPTransport object at 0x7fcc7b82ccd0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 393, in handle_async_request
+    with map_httpcore_exceptions():
+         └ <function map_httpcore_exceptions at 0x7fcc7c8fcf70>
+  File "/home/chenyusiyuan/miniconda3/envs/llm/lib/python3.10/contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+    │    │   │     │    │      └ <traceback object at 0x7fcc78988d00>
+    │    │   │     │    └ ConnectError(OSError('All connection attempts failed'))
+    │    │   │     └ <class 'httpcore.ConnectError'>
+    │    │   └ <method 'throw' of 'generator' objects>
+    │    └ <generator object map_httpcore_exceptions at 0x7fcc793f2a40>
+    └ <contextlib._GeneratorContextManager object at 0x7fcc78952f80>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+          │          └ 'All connection attempts failed'
+          └ <class 'httpx.ConnectError'>
+
+[31m[1mhttpx.ConnectError[0m:[1m All connection attempts failed[0m
+
+
+[1mThe above exception was the direct cause of the following exception:[0m
+
+
+[33m[1mTraceback (most recent call last):[0m
+
+  File "/home/chenyusiyuan/miniconda3/envs/llm/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+           │         │     └ {'__name__': '__main__', '__doc__': None, '__package__': 'uvicorn', '__loader__': <_frozen_importlib_external.SourceFileLoade...
+           │         └ <code object <module> at 0x7fcc7e657d60, file "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvi...
+           └ <function _run_code at 0x7fcc7f287520>
+  File "/home/chenyusiyuan/miniconda3/envs/llm/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+         │     └ {'__name__': '__main__', '__doc__': None, '__package__': 'uvicorn', '__loader__': <_frozen_importlib_external.SourceFileLoade...
+         └ <code object <module> at 0x7fcc7e657d60, file "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvi...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/__main__.py", line 4, in <module>
+    uvicorn.main()
+    │       └ <Command main>
+    └ <module 'uvicorn' from '/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/__init__.py'>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/click/core.py", line 1485, in __call__
+    return self.main(*args, **kwargs)
+           │    │     │       └ {}
+           │    │     └ ()
+           │    └ <function Command.main at 0x7fcc7e7dcee0>
+           └ <Command main>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/click/core.py", line 1406, in main
+    rv = self.invoke(ctx)
+         │    │      └ <click.core.Context object at 0x7fcc7f25fe50>
+         │    └ <function Command.invoke at 0x7fcc7e7dd000>
+         └ <Command main>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/click/core.py", line 1269, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           │   │      │    │           │   └ {'host': '0.0.0.0', 'port': 8000, 'app': 'main:app', 'uds': None, 'fd': None, 'reload': False, 'reload_dirs': (), 'reload_inc...
+           │   │      │    │           └ <click.core.Context object at 0x7fcc7f25fe50>
+           │   │      │    └ <function main at 0x7fcc7e401480>
+           │   │      └ <Command main>
+           │   └ <function Context.invoke at 0x7fcc7e7ddbd0>
+           └ <click.core.Context object at 0x7fcc7f25fe50>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/click/core.py", line 824, in invoke
+    return callback(*args, **kwargs)
+           │         │       └ {'host': '0.0.0.0', 'port': 8000, 'app': 'main:app', 'uds': None, 'fd': None, 'reload': False, 'reload_dirs': (), 'reload_inc...
+           │         └ ()
+           └ <function main at 0x7fcc7e401480>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/main.py", line 433, in main
+    run(
+    └ <function run at 0x7fcc7e4c7e20>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/main.py", line 606, in run
+    server.run()
+    │      └ <function Server.run at 0x7fcc7e6f8430>
+    └ <uvicorn.server.Server object at 0x7fcc7e3fcb50>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/server.py", line 75, in run
+    return asyncio_run(self.serve(sockets=sockets), loop_factory=self.config.get_loop_factory())
+           │           │    │             │                      │    │      └ <function Config.get_loop_factory at 0x7fcc7e64b910>
+           │           │    │             │                      │    └ <uvicorn.config.Config object at 0x7fcc7e3cbf70>
+           │           │    │             │                      └ <uvicorn.server.Server object at 0x7fcc7e3fcb50>
+           │           │    │             └ None
+           │           │    └ <function Server.serve at 0x7fcc7e6f84c0>
+           │           └ <uvicorn.server.Server object at 0x7fcc7e3fcb50>
+           └ <function asyncio_run at 0x7fcc7e7b63b0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/uvicorn/_compat.py", line 60, in asyncio_run
+    return loop.run_until_complete(main)
+           │    │                  └ <coroutine object Server.serve at 0x7fcc7e3d5380>
+           │    └ <cyfunction Loop.run_until_complete at 0x7fcc7e4c34c0>
+           └ <uvloop.Loop running=True closed=False debug=False>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/starlette/responses.py", line 273, in wrap
+    await func()
+          └ functools.partial(<bound method StreamingResponse.stream_response of <starlette.responses.StreamingResponse object at 0x7fcc7...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/starlette/responses.py", line 253, in stream_response
+    async for chunk in self.body_iterator:
+              │        │    └ <async_generator object create_app.<locals>.stream_research.<locals>.event_iterator at 0x7fcc7b9cb7c0>
+              │        └ <starlette.responses.StreamingResponse object at 0x7fcc7b916980>
+              └ b'data: {"type": "status", "message": "\xe8\xa7\x84\xe5\x88\x92\xe7\xa0\x94\xe7\xa9\xb6\xe4\xbb\xbb\xe5\x8a\xa1..."}\n\n'
+
+> File "[32m/home/chenyusiyuan/myresearcher/backend/src/[0m[32m[1mmain.py[0m", line [33m194[0m, in [35mevent_iterator[0m
+    [35m[1masync[0m [35m[1mfor[0m [1mevent[0m [35m[1min[0m [1mgraph[0m[35m[1m.[0m[1mastream_events[0m[1m([0m[1minitial_state[0m[1m,[0m [1mversion[0m[35m[1m=[0m[36m"v2"[0m[1m)[0m[1m:[0m
+    [36m          │        │     │              └ [0m[36m[1m{'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structured_report': '', 'visited_urls': set(), 'ev...[0m
+    [36m          │        │     └ [0m[36m[1m<function Runnable.astream_events at 0x7fcc7c531bd0>[0m
+    [36m          │        └ [0m[36m[1m<langgraph.graph.state.CompiledStateGraph object at 0x7fcc7ba56c20>[0m
+    [36m          └ [0m[36m[1m{'event': 'on_chain_start', 'data': {'input': {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'stru...[0m
+
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/runnables/base.py", line 1516, in astream_events
+    async for event in event_stream:
+              │        └ <async_generator object _astream_events_implementation_v2 at 0x7fcc7b938140>
+              └ {'event': 'on_chain_start', 'data': {'input': {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'stru...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/tracers/event_stream.py", line 1100, in _astream_events_implementation_v2
+    await task
+          └ <Task finished name='Task-6' coro=<_astream_events_implementation_v2.<locals>.consume_astream() done, defined at /home/chenyu...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/tracers/event_stream.py", line 1055, in consume_astream
+    async for _ in event_streamer.tap_output_aiter(run_id, stream):
+                   │              │                │       └ <async_generator object Pregel.astream at 0x7fcc7b9381c0>
+                   │              │                └ UUID('019cdd91-51ee-7701-826f-562c02b4b8d9')
+                   │              └ <function _AstreamEventsCallbackHandler.tap_output_aiter at 0x7fcc7c71f910>
+                   └ <langchain_core.tracers.event_stream._AstreamEventsCallbackHandler object at 0x7fcc7b916e00>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/tracers/event_stream.py", line 199, in tap_output_aiter
+    first = await anext(output, sentinel)
+                        │       └ <object object at 0x7fcc7c38e180>
+                        └ <async_generator object Pregel.astream at 0x7fcc7b9381c0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/pregel/main.py", line 3109, in astream
+    async for _ in runner.atick(
+              │    │      └ <function PregelRunner.atick at 0x7fcc7c2d8dc0>
+              │    └ <langgraph.pregel._runner.PregelRunner object at 0x7fcc7ba57550>
+              └ None
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/pregel/_runner.py", line 304, in atick
+    await arun_with_retry(
+          └ <function arun_with_retry at 0x7fcc7c2d83a0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/pregel/_retry.py", line 158, in arun_with_retry
+    async for _ in task.proc.astream(task.input, config):
+                   │    │    │       │    │      └ {'callbacks': <langchain_core.callbacks.manager.AsyncCallbackManager object at 0x7fcc7ba55960>, 'recursion_limit': 25, 'confi...
+                   │    │    │       │    └ {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structured_report': '', 'visited_urls': set(), 'ev...
+                   │    │    │       └ PregelExecutableTask(name='planner', input={'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structu...
+                   │    │    └ <function RunnableSeq.astream at 0x7fcc7c409ab0>
+                   │    └ <langgraph._internal._runnable.RunnableSeq object at 0x7fcc7ba558d0>
+                   └ PregelExecutableTask(name='planner', input={'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structu...
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/_internal/_runnable.py", line 871, in astream
+    output = await _consume_aiter(aiterator)
+                   │              └ <async_generator object _AstreamEventsCallbackHandler.tap_output_aiter at 0x7fcc7b939c40>
+                   └ <function _consume_aiter at 0x7fcc7c409b40>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/_internal/_runnable.py", line 904, in _consume_aiter
+    async for chunk in it:
+                       └ <async_generator object _AstreamEventsCallbackHandler.tap_output_aiter at 0x7fcc7b939c40>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/tracers/event_stream.py", line 199, in tap_output_aiter
+    first = await anext(output, sentinel)
+                        │       └ <object object at 0x7fcc7c38e100>
+                        └ <async_generator object Runnable.atransform at 0x7fcc7b939b40>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/runnables/base.py", line 1589, in atransform
+    async for ichunk in input:
+                        └ <async_generator object Runnable.atransform at 0x7fcc7b939ac0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/runnables/base.py", line 1589, in atransform
+    async for ichunk in input:
+                        └ <async_generator object Runnable.astream at 0x7fcc7b9399c0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langchain_core/runnables/base.py", line 1170, in astream
+    yield await self.ainvoke(input, config, **kwargs)
+                │    │       │      │         └ {}
+                │    │       │      └ {'callbacks': <langchain_core.callbacks.manager.AsyncCallbackManager object at 0x7fcc7ba55f90>, 'recursion_limit': 25, 'confi...
+                │    │       └ {'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structured_report': '', 'visited_urls': set(), 'ev...
+                │    └ <function RunnableCallable.ainvoke at 0x7fcc7c409510>
+                └ planner(tags=None, recurse=True, explode_args=False, func_accepts={})
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/langgraph/_internal/_runnable.py", line 473, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+                │    │      │       └ {}
+                │    │      └ ({'research_topic': '调研一下rag', 'todo_items': [], 'research_loop_count': 0, 'structured_report': '', 'visited_urls': set(), 'e...
+                │    └ <function planner_node at 0x7fcc7bc9bc70>
+                └ planner(tags=None, recurse=True, explode_args=False, func_accepts={})
+
+  File "[32m/home/chenyusiyuan/myresearcher/backend/src/graph/nodes/[0m[32m[1mplanner.py[0m", line [33m206[0m, in [35mplanner_node[0m
+    [1mresponse_text[0m [35m[1m=[0m [35m[1mawait[0m [1m_request_planner_response[0m[1m([0m[1mresearch_topic[0m[1m,[0m [1mruntime_config[0m[1m)[0m
+    [36m                      │                         │               └ [0m[36m[1m{'deep_research_breadth': 3, 'deep_research_depth': 2, 'deep_research_concurrency': 4, 'max_web_research_loops': 3, 'similari...[0m
+    [36m                      │                         └ [0m[36m[1m'调研一下rag'[0m
+    [36m                      └ [0m[36m[1m<function _request_planner_response at 0x7fcc7bc9b9a0>[0m
+
+  File "[32m/home/chenyusiyuan/myresearcher/backend/src/graph/nodes/[0m[32m[1mplanner.py[0m", line [33m121[0m, in [35m_request_planner_response[0m
+    [1mresponse[0m [35m[1m=[0m [35m[1mawait[0m [1mwith_llm_retry[0m[1m([0m
+    [36m                 └ [0m[36m[1m<function with_llm_retry at 0x7fcc7bc82b00>[0m
+
+  File "[32m/home/chenyusiyuan/myresearcher/backend/src/[0m[32m[1mutils.py[0m", line [33m35[0m, in [35mwith_llm_retry[0m
+    [35m[1mreturn[0m [35m[1mawait[0m [1mfn[0m[1m([0m[1m)[0m
+    [36m             └ [0m[36m[1m<function _request_planner_response.<locals>.<lambda> at 0x7fcc7b969900>[0m
+
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/openai/resources/chat/completions/completions.py", line 2714, in create
+    return await self._post(
+                 │    └ <bound method AsyncAPIClient.post of <openai.AsyncOpenAI object at 0x7fcc7ba571f0>>
+                 └ <openai.resources.chat.completions.completions.AsyncCompletions object at 0x7fcc7ba57100>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/openai/_base_client.py", line 1884, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+                 │    │       │        │            │                  └ openai.AsyncStream[openai.types.chat.chat_completion_chunk.ChatCompletionChunk]
+                 │    │       │        │            └ False
+                 │    │       │        └ FinalRequestOptions(method='post', url='/chat/completions', params={}, headers=NOT_GIVEN, max_retries=NOT_GIVEN, timeout=NOT_...
+                 │    │       └ <class 'openai.types.chat.chat_completion.ChatCompletion'>
+                 │    └ <function AsyncAPIClient.request at 0x7fcc7bd12cb0>
+                 └ <openai.AsyncOpenAI object at 0x7fcc7ba571f0>
+  File "/home/chenyusiyuan/myresearcher/backend/.venv/lib/python3.10/site-packages/openai/_base_client.py", line 1636, in request
+    raise APIConnectionError(request=request) from err
+          │                          └ <Request('POST', 'https://api.deepseek.com/chat/completions')>
+          └ <class 'openai.APIConnectionError'>
+
+[31m[1mopenai.APIConnectionError[0m:[1m Connection error.[0m
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [3379345]
