@@ -105,8 +105,7 @@ def _merge_missing_topics(
     for topic in missing_topics:
         _append(topic)
     for brief in research_briefs:
-        _append(str(brief.get("query") or ""))
-        _append(str(brief.get("topic") or ""))
+        _append(str(brief.get("topic") or brief.get("query") or ""))
     return merged
 
 
@@ -333,7 +332,7 @@ def _build_missing_topic_tasks(state: dict[str, Any], missing_topics: list[str])
         existing_keys.add(normalized)
         tasks.append(
             {
-                "id": next_id + offset,
+                "id": next_id + len(tasks),
                 "title": topic_text,
                 "intent": f"补充研究该缺失主题：{topic_text}",
                 "query": topic_text,
