@@ -1,7 +1,7 @@
 
-  VITE v6.4.1  ready in 466 ms
+  VITE v6.4.1  ready in 2002 ms
 
   ➜  Local:   http://localhost:5174/
-  ➜  Network: http://10.176.24.18:5174/
-  ➜  Network: http://172.20.0.1:5174/
-  ➜  Network: http://172.21.0.1:5174/
+  ➜  Network: http://10.255.255.254:5174/
+  ➜  Network: http://10.230.33.114:5174/
+  ➜  Network: http://192.168.31.99:5174/

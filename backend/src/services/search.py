@@ -23,6 +23,15 @@ logger = logging.getLogger(__name__)
 MAX_RESULTS = 8
 MAX_TOKENS_PER_SOURCE = 4000
 REQUEST_TIMEOUT = 15
+DEFAULT_DDGS_TEXT_BACKENDS = (
+    "duckduckgo",
+    "brave",
+    "google",
+    "bing",
+    "yahoo",
+    "wikipedia",
+    "grokipedia",
+)
 _DEFAULT_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -120,8 +129,23 @@ def _get_ddgs_client():
             return _DDGS_CLIENT
         from ddgs import DDGS
 
-        _DDGS_CLIENT = DDGS()
+        _DDGS_CLIENT = DDGS(timeout=REQUEST_TIMEOUT)
     return _DDGS_CLIENT
+
+
+def _resolve_ddgs_text_backends() -> tuple[str, ...]:
+    configured = os.getenv("DDGS_TEXT_BACKENDS", "")
+    if configured.strip():
+        backends = tuple(
+            dict.fromkeys(
+                backend.strip()
+                for backend in configured.split(",")
+                if backend.strip()
+            )
+        )
+        if backends:
+            return backends
+    return DEFAULT_DDGS_TEXT_BACKENDS
 
 
 def _get_tavily_client():
@@ -144,21 +168,49 @@ def _get_tavily_client():
 
 def _search_duckduckgo(query: str, config: Configuration) -> dict[str, Any]:
     client = _get_ddgs_client()
-    raw_results = list(client.text(query, max_results=MAX_RESULTS))
-    results = [
-        _normalize_result(
-            title=item.get("title"),
-            url=item.get("href"),
-            snippet=item.get("body"),
-        )
-        for item in raw_results
-        if isinstance(item, dict)
-    ]
+    notices: list[str] = []
+
+    for backend in _resolve_ddgs_text_backends():
+        try:
+            raw_results = list(
+                client.text(
+                    query,
+                    max_results=MAX_RESULTS,
+                    backend=backend,
+                )
+            )
+        except Exception as exc:  # pragma: no cover - external backends vary
+            logger.warning("DDGS backend %s failed for query %r: %s", backend, query, exc)
+            notices.append(f"ddgs:{backend} 搜索失败：{exc}")
+            continue
+
+        results = [
+            _normalize_result(
+                title=item.get("title"),
+                url=item.get("href"),
+                snippet=item.get("body"),
+            )
+            for item in raw_results
+            if isinstance(item, dict)
+        ]
+        deduped_results = _dedupe_results(results)
+        if not deduped_results:
+            notices.append(f"ddgs:{backend} 未返回可用结果")
+            continue
+
+        return {
+            "results": _fill_page_content(deduped_results, config.fetch_full_page),
+            "backend": f"duckduckgo:{backend}",
+            "answer": None,
+            "notices": notices,
+        }
+
+    notices.append("所有 DDGS 搜索后端均失败或未返回可用结果")
     return {
-        "results": _fill_page_content(_dedupe_results(results), config.fetch_full_page),
-        "backend": "duckduckgo",
+        "results": [],
+        "backend": "duckduckgo:fallback_exhausted",
         "answer": None,
-        "notices": [],
+        "notices": notices,
     }
 
 
