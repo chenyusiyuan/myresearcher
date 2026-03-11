@@ -184,13 +184,40 @@ def map_langgraph_event(event: dict[str, Any]) -> list[dict[str, Any]]:
         )
 
         approved = bool(review_result.get("approved"))
+        research_briefs = [
+            item
+            for item in review_result.get("research_briefs", [])
+            if isinstance(item, dict)
+        ]
+        section_patch_plan = [
+            item
+            for item in review_result.get("section_patch_plan", [])
+            if isinstance(item, dict)
+        ]
         missing_topics = [
             str(topic).strip()
             for topic in review_result.get("missing_topics", [])
             if str(topic).strip()
         ]
+        if research_briefs:
+            mapped_events.append({"type": "research_briefs", "briefs": research_briefs})
+        if section_patch_plan:
+            mapped_events.append({"type": "patch_plan", "plan": section_patch_plan})
+
         if approved:
             mapped_events.append({"type": "status", "message": "Reviewer 已通过当前报告。"})
+        elif research_briefs:
+            brief_topics = [
+                str(item.get("topic") or item.get("query") or "").strip()
+                for item in research_briefs
+                if str(item.get("topic") or item.get("query") or "").strip()
+            ]
+            mapped_events.append(
+                {
+                    "type": "status",
+                    "message": f"Reviewer 已派发补研简报：{'、'.join(brief_topics)}",
+                }
+            )
         elif missing_topics:
             mapped_events.append(
                 {
@@ -198,6 +225,8 @@ def map_langgraph_event(event: dict[str, Any]) -> list[dict[str, Any]]:
                     "message": f"Reviewer 要求补充研究：{'、'.join(missing_topics)}",
                 }
             )
+        elif section_patch_plan:
+            mapped_events.append({"type": "status", "message": "Reviewer 已生成定向改写计划。"})
         else:
             mapped_events.append({"type": "status", "message": "Reviewer 要求继续重写报告。"})
         return mapped_events

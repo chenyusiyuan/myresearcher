@@ -253,6 +253,117 @@ def _build_evidence_items(task_id: int, results: list[dict[str, Any]]) -> list[d
     ]
 
 
+async def _extract_claims(
+    task_id: int,
+    summary: str,
+    evidence_items: list[dict[str, Any]],
+    runtime_config: dict[str, Any],
+) -> list[dict[str, Any]]:
+    if not summary.strip() or not evidence_items:
+        return list(evidence_items)
+
+    config, provider, model = _resolve_model_config(runtime_config, selector_key="smart_llm")
+    client = _resolve_client(config, provider)
+    evidence_block = "\n".join(
+        (
+            f"- URL: {str(item.get('url') or '').strip()}\n"
+            f"  标题: {str(item.get('title') or '').strip()}\n"
+            f"  摘要: {str(item.get('snippet') or '').strip()[:500] or '暂无摘要'}"
+        )
+        for item in evidence_items
+        if str(item.get("url") or "").strip()
+    )
+    prompt = (
+        f"任务ID：{task_id}\n\n"
+        f"任务摘要：\n{summary[:4000]}\n\n"
+        f"可用证据列表：\n{evidence_block or '暂无证据'}\n\n"
+        "请从任务摘要中提取关键论断，并为每条论断匹配最合适的证据来源。"
+        "返回 JSON 数组，每项格式如下：\n"
+        '[{"claim_text": "论断内容", "evidence_url": "对应URL", "support_type": "support", "section_hint": "建议章节"}]\n'
+        "support_type 只能是 support、contradict、background 之一。"
+        "只返回 JSON，不要解释。"
+    )
+
+    try:
+        response = await with_llm_retry(
+            lambda: client.chat.completions.create(
+                model=model,
+                temperature=0,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "你是一名信息提取专家，擅长从研究摘要中识别关键论断并将其与来源证据对应。",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+            )
+        )
+        content = response.choices[0].message.content or ""
+        content = strip_tool_calls(strip_thinking_tokens(content)).strip()
+
+        candidates: list[str] = []
+        fenced_match = re.search(r"```(?:json)?\s*(.*?)```", content, re.IGNORECASE | re.DOTALL)
+        if fenced_match:
+            candidates.append(fenced_match.group(1).strip())
+        if content:
+            candidates.append(content)
+        array_start = content.find("[")
+        array_end = content.rfind("]")
+        if array_start != -1 and array_end != -1 and array_end > array_start:
+            candidates.append(content[array_start : array_end + 1])
+        object_start = content.find("{")
+        object_end = content.rfind("}")
+        if object_start != -1 and object_end != -1 and object_end > object_start:
+            candidates.append(content[object_start : object_end + 1])
+
+        parsed: Any = None
+        for candidate in candidates:
+            try:
+                parsed = _load_json(candidate)
+                break
+            except Exception:
+                continue
+
+        if isinstance(parsed, dict):
+            parsed = parsed.get("claims") or parsed.get("items") or []
+        if not isinstance(parsed, list):
+            return list(evidence_items)
+
+        updated_items = [dict(item) for item in evidence_items]
+        index_by_url = {
+            str(item.get("url") or "").strip(): index
+            for index, item in enumerate(updated_items)
+            if str(item.get("url") or "").strip()
+        }
+
+        for item in parsed:
+            if not isinstance(item, dict):
+                continue
+            evidence_url = str(item.get("evidence_url") or item.get("url") or "").strip()
+            claim_text = str(item.get("claim_text") or "").strip()
+            if not evidence_url or not claim_text:
+                continue
+            item_index = index_by_url.get(evidence_url)
+            if item_index is None:
+                continue
+            if str(updated_items[item_index].get("claim_text") or "").strip():
+                continue
+
+            support_type = str(item.get("support_type") or "support").strip().lower()
+            if support_type not in {"support", "contradict", "background"}:
+                support_type = "support"
+            section_hint = str(item.get("section_hint") or "").strip()
+            updated_items[item_index]["claim_text"] = claim_text
+            updated_items[item_index]["support_type"] = support_type
+            if section_hint:
+                updated_items[item_index]["section_hint"] = section_hint
+
+        return updated_items
+    except Exception as exc:
+        logger.debug("Claim extraction failed: %s", exc)
+        return list(evidence_items)
+
+
 async def _generate_followup_queries(
     research_topic: str,
     task: dict[str, Any],
@@ -566,6 +677,12 @@ async def task_node(state: dict[str, Any]) -> dict[str, Any]:
     }
 
     evidence_items = _build_evidence_items(updated_task["id"], all_filtered_results)
+    evidence_items = await _extract_claims(
+        task_id=updated_task["id"],
+        summary=summary,
+        evidence_items=evidence_items,
+        runtime_config=runtime_config,
+    )
     source_payload = [
         {"url": item["url"], "title": item["title"]}
         for item in evidence_items

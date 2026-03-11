@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import operator
-from typing import Annotated, Optional, TypedDict
+from typing import Annotated, NotRequired, Optional, TypedDict
 
 
 def _coerce_task_id(value: object) -> int | None:
@@ -51,6 +51,9 @@ class EvidenceItem(TypedDict):
     title: str
     snippet: str
     relevance_score: float
+    claim_text: NotRequired[Optional[str]]
+    support_type: NotRequired[Optional[str]]
+    section_hint: NotRequired[Optional[str]]
 
 
 class TodoItem(TypedDict):

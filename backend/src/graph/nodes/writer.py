@@ -75,10 +75,21 @@ def _build_evidence_block(evidence_store: list[dict[str, Any]]) -> str:
         title = str(item.get("title") or url).strip()
         snippet = str(item.get("snippet") or "").strip()[:_MAX_EVIDENCE_SNIPPET_CHARS]
         score = item.get("relevance_score", 0.0)
-        lines.append(
-            f"- 任务 {item.get('task_id')} | {title} | {url} | score={score}\n"
-            f"  摘要：{snippet or '暂无摘要'}"
-        )
+        claim_text = str(item.get("claim_text") or "").strip()
+        support_type = str(item.get("support_type") or "").strip()
+        section_hint = str(item.get("section_hint") or "").strip()
+
+        header_parts = [f"- 任务 {item.get('task_id')}", title, url, f"score={score}"]
+        if support_type:
+            header_parts.append(f"relation={support_type}")
+        if section_hint:
+            header_parts.append(f"section={section_hint}")
+
+        detail_lines = [" | ".join(header_parts)]
+        if claim_text:
+            detail_lines.append(f"  绑定论断：{claim_text}")
+        detail_lines.append(f"  摘要：{snippet or '暂无摘要'}")
+        lines.append("\n".join(detail_lines))
     return "\n".join(lines).strip()
 
 
@@ -89,6 +100,8 @@ def _build_review_block(review_result: dict[str, Any], previous_report: str) -> 
     feedback = str(review_result.get("feedback") or "").strip()
     weak_sections = review_result.get("weak_sections") or []
     missing_topics = review_result.get("missing_topics") or []
+    research_briefs = review_result.get("research_briefs") or []
+    section_patch_plan = review_result.get("section_patch_plan") or []
 
     parts = ["## 审查反馈"]
     if feedback:
@@ -100,6 +113,34 @@ def _build_review_block(review_result: dict[str, Any], previous_report: str) -> 
     if missing_topics:
         parts.append(
             "补研主题：\n" + "\n".join(f"- {str(topic).strip()}" for topic in missing_topics if str(topic).strip())
+        )
+    if research_briefs:
+        parts.append(
+            "补研简报：\n"
+            + "\n".join(
+                (
+                    f"- {str(item.get('topic') or item.get('query') or '').strip()} | "
+                    f"priority={str(item.get('priority') or 'medium').strip()} | "
+                    f"query={str(item.get('query') or '').strip()}\n"
+                    f"  目标：{str(item.get('intent') or '').strip() or '暂无补研目标'}"
+                )
+                for item in research_briefs
+                if isinstance(item, dict)
+                and str(item.get("topic") or item.get("query") or "").strip()
+            )
+        )
+    if section_patch_plan:
+        parts.append(
+            "局部改写计划：\n"
+            + "\n".join(
+                (
+                    f"- 章节：{str(item.get('section') or '').strip()}\n"
+                    f"  问题：{str(item.get('issue') or '').strip() or '暂无问题描述'}\n"
+                    f"  修改要求：{str(item.get('instruction') or '').strip() or '暂无修改要求'}"
+                )
+                for item in section_patch_plan
+                if isinstance(item, dict) and str(item.get("section") or "").strip()
+            )
         )
     if previous_report.strip():
         headings = re.findall(r"^#{1,3}\s+.+$", previous_report, flags=re.MULTILINE)

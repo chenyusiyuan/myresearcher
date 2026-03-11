@@ -33,6 +33,83 @@ def _normalize_score(value: Any) -> float:
         return 0.0
 
 
+def _normalize_priority(value: Any) -> str:
+    priority = str(value or "").strip().lower()
+    if priority in {"high", "medium", "low"}:
+        return priority
+    return "medium"
+
+
+def _normalize_research_briefs(value: Any) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        return []
+
+    briefs: list[dict[str, str]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        topic = str(item.get("topic") or "").strip()
+        intent = str(item.get("intent") or "").strip()
+        query = str(item.get("query") or "").strip()
+        if not topic and not query:
+            continue
+        briefs.append(
+            {
+                "topic": topic or query,
+                "intent": intent or f"补充研究：{topic or query}",
+                "query": query or topic,
+                "priority": _normalize_priority(item.get("priority")),
+            }
+        )
+    return briefs
+
+
+def _normalize_section_patch_plan(value: Any) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        return []
+
+    plan: list[dict[str, str]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        section = str(item.get("section") or "").strip()
+        issue = str(item.get("issue") or "").strip()
+        instruction = str(item.get("instruction") or "").strip()
+        if not section or not instruction:
+            continue
+        plan.append(
+            {
+                "section": section,
+                "issue": issue or "该章节仍需增强结构、论证或表达。",
+                "instruction": instruction,
+            }
+        )
+    return plan
+
+
+def _merge_missing_topics(
+    missing_topics: list[str],
+    research_briefs: list[dict[str, str]],
+) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+
+    def _append(value: str) -> None:
+        text = str(value).strip()
+        normalized = text.lower()
+        if not text or normalized in seen:
+            return
+        seen.add(normalized)
+        merged.append(text)
+
+    for topic in missing_topics:
+        _append(topic)
+    for brief in research_briefs:
+        _append(str(brief.get("query") or ""))
+        _append(str(brief.get("topic") or ""))
+    return merged
+
+
 def _build_task_snapshot(state: dict[str, Any]) -> str:
     blocks: list[str] = []
     for item in state.get("todo_items", []):
@@ -63,13 +140,18 @@ def _build_evidence_snapshot(state: dict[str, Any]) -> str:
     lines: list[str] = []
     for task_id, evidence_items in evidence_by_task.items():
         urls = []
+        claim_samples = []
         for evidence in evidence_items[:5]:
             url = str(evidence.get("url") or "").strip()
             if url:
                 urls.append(url)
+            claim_text = str(evidence.get("claim_text") or "").strip()
+            if claim_text:
+                claim_samples.append(claim_text[:120])
         lines.append(
             f"- 任务 {task_id}：证据 {len(evidence_items)} 条"
             + (f" | 来源：{', '.join(urls)}" if urls else "")
+            + (f" | 论断示例：{'；'.join(claim_samples[:2])}" if claim_samples else "")
         )
     return "\n".join(lines).strip()
 
@@ -116,12 +198,22 @@ weak_sections（触发纯重写）仅在以下情况填写：
 - 章节已有足够数据但分析浅薄、缺乏洞见（不是缺数据，是缺分析）
 → 只填章节名，不填检索词
 
+research_briefs（结构化补研单）：
+- 当 missing_topics 非空时，尽量给出 1~3 个结构化补研单
+- 每项必须包含 topic / intent / query / priority
+- priority 只能是 high、medium、low
+
+section_patch_plan（定向改写计划）：
+- 当 weak_sections 非空时，尽量给出每个章节的改写计划
+- 每项必须包含 section / issue / instruction
+- instruction 要足够具体，能够直接指导改写
+
 【重要】：
 - 如果一个章节既缺证据又写得差，同时填入 missing_topics（补搜索）和 weak_sections（待重写）
 - 不要把证据不足的问题放进 weak_sections 了事——那样系统只会用原有数据重写，毫无意义
 - feedback 必须区分"哪些问题需要新的检索"和"哪些问题只需改写"
 
-若报告已达到可交付标准，approved 设为 true，missing_topics 和 weak_sections 均为空数组。
+若报告已达到可交付标准，approved 设为 true，missing_topics、weak_sections、research_briefs、section_patch_plan 均为空数组。
 只返回 JSON，不要输出任何额外解释。
 
 返回格式：
@@ -130,7 +222,22 @@ weak_sections（触发纯重写）仅在以下情况填写：
   "score": 0.0,
   "feedback": "具体改进建议，区分需补搜索 vs 需改写的问题",
   "missing_topics": ["可直接用于搜索的查询词A", "查询词B"],
-  "weak_sections": ["需改写的章节名"]
+  "weak_sections": ["需改写的章节名"],
+  "research_briefs": [
+    {
+      "topic": "补研主题",
+      "intent": "补研目标",
+      "query": "可直接搜索的查询词",
+      "priority": "high"
+    }
+  ],
+  "section_patch_plan": [
+    {
+      "section": "需改写章节",
+      "issue": "该章节存在的问题",
+      "instruction": "具体改写要求"
+    }
+  ]
 }}
 """.strip()
 
@@ -169,6 +276,9 @@ def _extract_json_payload(text: str) -> Any:
 
 def _build_missing_topic_tasks(state: dict[str, Any], missing_topics: list[str]) -> list[dict[str, Any]]:
     existing_items = [item for item in state.get("todo_items", []) if isinstance(item, dict)]
+    research_briefs = _normalize_research_briefs(
+        state.get("review_result", {}).get("research_briefs", [])
+    )
     existing_ids = [
         int(item["id"])
         for item in existing_items
@@ -188,6 +298,33 @@ def _build_missing_topic_tasks(state: dict[str, Any], missing_topics: list[str])
     )
 
     tasks: list[dict[str, Any]] = []
+    if research_briefs:
+        for offset, brief in enumerate(research_briefs):
+            title = str(brief.get("topic") or brief.get("query") or "").strip()
+            intent = str(brief.get("intent") or "").strip()
+            query = str(brief.get("query") or title).strip()
+            normalized_keys = {
+                value.lower()
+                for value in (title, query)
+                if value
+            }
+            if not title or not query or normalized_keys.intersection(existing_keys):
+                continue
+            existing_keys.update(normalized_keys)
+            tasks.append(
+                {
+                    "id": next_id + len(tasks),
+                    "title": title,
+                    "intent": intent or f"补充研究该缺失主题：{title}",
+                    "query": query,
+                    "status": "pending",
+                    "summary": None,
+                    "sources_summary": None,
+                }
+            )
+        if tasks:
+            return tasks
+
     for offset, topic in enumerate(missing_topics):
         topic_text = str(topic).strip()
         normalized = topic_text.lower()
@@ -228,13 +365,21 @@ async def reviewer_node(state: dict[str, Any]) -> dict[str, Any]:
     )
     content = strip_thinking_tokens(response.choices[0].message.content or "").strip()
     parsed = _extract_json_payload(content)
+    research_briefs = _normalize_research_briefs(parsed.get("research_briefs", []))
+    section_patch_plan = _normalize_section_patch_plan(parsed.get("section_patch_plan", []))
+    missing_topics = _merge_missing_topics(
+        _normalize_list(parsed.get("missing_topics", [])),
+        research_briefs,
+    )
 
     review_result = {
         "approved": bool(parsed.get("approved", False)),
         "score": _normalize_score(parsed.get("score", 0.0)),
         "feedback": str(parsed.get("feedback") or "").strip(),
-        "missing_topics": _normalize_list(parsed.get("missing_topics", [])),
+        "missing_topics": missing_topics,
         "weak_sections": _normalize_list(parsed.get("weak_sections", [])),
+        "research_briefs": research_briefs,
+        "section_patch_plan": section_patch_plan,
     }
     if not review_result["feedback"] and not review_result["approved"]:
         review_result["feedback"] = "报告仍需增强证据、结构或主题覆盖，请结合缺失主题与薄弱章节继续完善。"
@@ -245,7 +390,8 @@ async def reviewer_node(state: dict[str, Any]) -> dict[str, Any]:
     }
 
     if not review_result["approved"] and review_result["missing_topics"]:
-        todo_items = _build_missing_topic_tasks(state, review_result["missing_topics"])
+        review_state = {**state, "review_result": review_result}
+        todo_items = _build_missing_topic_tasks(review_state, review_result["missing_topics"])
         if todo_items:
             update["todo_items"] = todo_items
 
