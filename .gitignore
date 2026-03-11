@@ -1,0 +1,21 @@
+.DS_Store
+
+# Local tooling state
+.claude/settings.local.json
+.venv/
+backend/.venv/
+backend/.venv-studio/
+backend/.langgraph_api/
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+
+# Secrets and local env overrides
+backend/.env
+frontend/.env.local
+
+# Python cache files
+__pycache__/
+*.pyc
+*.egg-info/

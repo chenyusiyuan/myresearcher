@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "."
+  ],
+  "graphs": {
+    "deep_researcher": "./src/langgraph_app.py:graph"
+  },
+  "env": ".env"
+}
